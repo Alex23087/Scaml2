@@ -1,0 +1,28 @@
+# dune build
+# OCAMLPARAM: unset
+# Shared cache: disabled
+# Shared cache location: /home/perkelo/.cache/dune/db
+# Workspace root: /home/perkelo/build/scaml
+# Auto-detected concurrency: 20
+# Dune context:
+#  { name = "default"
+#  ; kind = "default"
+#  ; profile = Dev
+#  ; merlin = true
+#  ; fdo_target_exe = None
+#  ; build_dir = In_build_dir "default"
+#  ; installed_env =
+#      map
+#        { "INSIDE_DUNE" : "/home/perkelo/build/scaml/_build/default"
+#        ; "OCAML_COLOR" : "always"
+#        ; "OPAMCOLOR" : "always"
+#        }
+#  ; instrument_with = []
+#  }
+$ /home/perkelo/.opam/default/bin/ocamlc.opt -config > /tmp/dune_d410d9_output
+$ (cd _build/default && /home/perkelo/.opam/default/bin/ocamldep.opt -modules -impl lib/gast.ml) > _build/default/lib/.scaml.objs/scaml__Gast.impl.d
+> File "lib/gast.ml", line 1, characters 11-15:
+> 1 | type pippo expr =
+>                ^^^^
+> Error: Syntax error
+[2]
