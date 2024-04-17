@@ -1,8 +1,0 @@
-lib: [
-  "_build/install/default/lib/scaml/META"
-  "_build/install/default/lib/scaml/dune-package"
-  "_build/install/default/lib/scaml/opam"
-]
-bin: [
-  "_build/install/default/bin/scaml"
-]

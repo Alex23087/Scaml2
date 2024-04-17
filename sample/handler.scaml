@@ -1,0 +1,15 @@
+let passHandler = trusted handler {
+  getPassword t _ k =
+    if (t = trusted)
+      then k password
+      else k obfuscatedPassword
+} in
+
+
+
+
+
+with passHandler handle {
+  let pass = getPassword () in
+  print pass
+}

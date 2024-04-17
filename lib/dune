@@ -1,2 +1,4 @@
 (library
- (name scaml))
+ (name scaml)
+ (preprocess
+  (pps ppx_deriving.show)))
