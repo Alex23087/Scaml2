@@ -46,7 +46,8 @@ type expr =
   | IfThenElse of expr * expr * expr
   | Func of ident list * expr
   | Apply of expr * expr list
-  | Handler of expr list
+  | Handler of (ident * expr) list
   | WithHandle of expr * expr
-  | CallOp of expr * expr list
+  | CallOp of ident * expr list
   | Fix of expr
+  | Print of expr
