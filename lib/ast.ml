@@ -31,11 +31,13 @@ type comparison =
   | Leq
   | Geq
   | Eq
+  | Neq
 
 type expr =
   | Let of ident * expr * expr
   | IntLiteral of int
   | BoolLiteral of bool
+  | Var of ident
   | ABinop of abinop * expr * expr
   | AUnop of aunop * expr
   | BBinop of bbinop * expr * expr

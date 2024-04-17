@@ -21,6 +21,7 @@ type evaluationType =
 [@@deriving show]
 
 let unwrapInt v = match v with Int a -> a | _ -> failwith "Wrong type!"
+let unwrapBool v = match v with Bool a -> a | _ -> failwith "Wrong type!"
 
 let rec eval (expression: Ast.expr) (env: evaluationType environment) : evaluationType =
   match expression with
@@ -51,7 +52,11 @@ let rec eval (expression: Ast.expr) (env: evaluationType environment) : evaluati
     | Fix (exp) -> (
       match (eval exp env) with 
         | Closure (is, body, env) -> (
-          let rec x = Closure(List.tl is, body, fun y -> if y= (List.hd is) then x else env y) in x
+          let x = ref (let rec x = Closure(List.tl is, body, fun y -> if y= (List.hd is) then x else env y) in x) in
+          while (match !x with | Closure (li, body, env) when List.length li = 0 -> x := eval body env; true | _ -> false) do
+            ()
+          done;
+          !x
         )
         | _ -> failwith "Applying fixpoint to non-function"
     )
@@ -62,12 +67,42 @@ let rec eval (expression: Ast.expr) (env: evaluationType environment) : evaluati
         )
         | _ -> failwith "Trying to apply a non-function value"
     )
+    | Comparison (op, lhs, rhs) -> ( Bool (
+      (match op with
+        | Lt -> (<)
+        | Gt -> (>)
+        | Leq -> (<=)
+        | Geq -> (>=)
+        | Eq -> (=)
+        | Neq -> (<>))
+        (unwrapInt(eval lhs env)) (unwrapInt(eval rhs env))
+      )
+    )
+    | Var ident -> (
+      env ident
+    )
+    | IfThenElse (guard, thenbranch, elsebranch) -> (
+      match eval guard env with
+        | Bool b -> (
+          eval (if b then thenbranch else elsebranch) env
+        )
+        | _ -> failwith "Guard cannot be non-bool"
+    )
+    | BBinop (op, lhs, rhs) -> ( Bool (
+      (match op with
+        | And -> (&&)
+        | Or -> (||))
+        (unwrapBool(eval lhs env)) (unwrapBool(eval rhs env))
+      )
+    )
+    | BUnop (op, exp) -> ( Bool (
+      (match op with
+        | Not -> (not))
+        (unwrapBool(eval exp env))
+      )
+    )
     | _ -> failwith "Not implemented"
     (*
-    | BBinop of bbinop * expr * expr
-    | BUnop of expr
-    | Comparison of comparison * expr * expr
-    | IfThenElse of expr * expr * expr
     | Handler of expr list
     | WithHandle of expr * expr
     | CallOp of expr * expr list *)
