@@ -83,17 +83,17 @@ let rec eval (expression: Ast.expr) (env: evaluationType environment) (effEnv: e
         | _ -> failwith "Applying fixpoint to non-function"
     )
     | Fixes (exps) -> (
-      let rec closures = List.map (fun exp -> match (eval exp env effEnv) with
+      let rec closures = lazy (List.map (fun exp -> match (eval exp env effEnv) with
           | Closure (is, body, env) -> Closure (
             drop (List.length exps) is,
             body,
             fun y -> let io = List.find_index (fun i -> i = y) (take (List.length exps) is) in 
               match io with
-                | Some i -> List.nth closures i
+                | Some i -> (List.nth (Lazy.force closures) i)
                 | None -> env y
             )
           | _ -> failwith "Applying fixpoint to non-function"
-      ) exps in Lista closures
+      ) exps) in Lista (Lazy.force closures)
     )
     | Apply (func, params) -> (
       match (eval func env effEnv) with
