@@ -1,8 +1,20 @@
 type ident = Ast.ident [@@deriving show]
 
 exception IdentifierNotFoundException of ident
-  
+
 type 'a environment = ident -> 'a
+
+let rec drop n lst =
+  if n <= 0 then lst
+  else match lst with
+       | [] -> []
+       | _ :: tl -> drop (n - 1) tl
+
+let rec take n lst =
+  if n <= 0 then []
+  else match lst with
+       | [] -> []
+       | hd :: tl -> hd :: take (n - 1) tl
 
 let emptyEnv () = fun x -> raise (IdentifierNotFoundException x)
 let bind (name: ident) (value: 'a) (env: 'a environment) = fun x -> if x = name then value else env x
@@ -14,12 +26,12 @@ let rec bindlist (names: ident list) (values: 'a list) (env: 'a environment) =
   | ([], []) -> env
   | _ -> failwith "Wrong number of parameters passed"
 
-
 type evaluationType =
   | Int of int
   | Bool of bool
   | Closure of ident list * (Ast.expr[@opaque]) * (evaluationType environment[@opaque])
   | Handler of (ident * evaluationType) list
+  | Lista of evaluationType list
 [@@deriving show]
 
 let unwrapInt v = match v with Int a -> a | _ -> failwith "Wrong type!"
@@ -60,7 +72,7 @@ let rec eval (expression: Ast.expr) (env: evaluationType environment) (effEnv: e
       Closure (params, body, env)
     )
     | Fix (exp) -> (
-      match (eval exp env effEnv) with 
+      match (eval exp env effEnv) with
         | Closure (is, body, env) -> (
           let x = ref (let rec x = Closure(List.tl is, body, fun y -> if y= (List.hd is) then x else env y) in x) in
           while (match !x with | Closure (li, body, env) when List.length li = 0 -> x := eval body env effEnv; true | _ -> false) do
@@ -69,6 +81,19 @@ let rec eval (expression: Ast.expr) (env: evaluationType environment) (effEnv: e
           !x
         )
         | _ -> failwith "Applying fixpoint to non-function"
+    )
+    | Fixes (exps) -> (
+      let rec closures = List.map (fun exp -> match (eval exp env effEnv) with
+          | Closure (is, body, env) -> Closure (
+            drop (List.length exps) is,
+            body,
+            fun y -> let io = List.find_index (fun i -> i = y) (take (List.length exps) is) in 
+              match io with
+                | Some i -> List.nth closures i
+                | None -> env y
+            )
+          | _ -> failwith "Applying fixpoint to non-function"
+      ) exps in Lista closures
     )
     | Apply (func, params) -> (
       match (eval func env effEnv) with
@@ -138,4 +163,3 @@ let rec eval (expression: Ast.expr) (env: evaluationType environment) (effEnv: e
       e
     )
     (* | _ -> failwith "Not implemented" *)
-

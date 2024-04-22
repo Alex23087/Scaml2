@@ -50,4 +50,5 @@ type expr =
   | WithHandle of expr * expr
   | CallOp of ident * expr list
   | Fix of expr
+  | Fixes of expr list
   | Print of expr
