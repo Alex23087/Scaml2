@@ -1,0 +1,219 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, width=15.09cm]{geometry}
+
+\usepackage{mlmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{mathtools,stmaryrd,galois,amsmath,amssymb,amsthm,prftree}
+\usepackage{graphicx,tikz,quiver}
+\usepackage{mleftright,xspace}
+
+\usepackage{listings,lstautogobble}
+\lstset{
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  keepspaces=true,
+  autogobble=true,
+  xleftmargin=2em,
+  literate={lam.}{{$\lambda$}}1,
+  showstringspaces=false,
+}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+
+\renewcommand*{\O}[1]{\mathrm{O}(#1)}
+\newcommand*{\wdeg}[1]{\operatorname{wdeg}{#1}}
+
+\newcommand*{\abs}[1]{\left| #1 \right|}
+\newcommand*{\ceil}[1]{\left\lceil #1 \right\rceil}
+\newcommand*{\floor}[1]{\left\lfloor #1 \right\rfloor}
+
+\newcommand*{\pr}[1]{\mathrm{P}\!\left( #1 \right)}
+
+\newcommand*{\lam}[2]{\lambda #1.\;#2}
+\newcommand*{\ext}[3]{#1[#2 \mapsto #3]}
+
+\DeclareMathOperator{\subtype}{\scalebox{0.6}[1]{$<$}\hspace{-0.75pt}\raisebox{0.25pt}{:}}
+\DeclareMathOperator{\nsubtype}{\scalebox{0.8}{$\not$}\hspace{-0.2pt}\scalebox{0.6}[1]{$<$}\hspace{-0.75pt}\raisebox{0.25pt}{:}}
+\DeclareMathOperator{\supertype}{\reflectbox{$\subtype$}}
+\DeclareMathOperator{\nsupertype}{\reflectbox{$\nsubtype$}}
+
+\newcommand*{\Fsub}{\ensuremath{F_{\subtype}}}
+\newcommand*{\lambdasub}{\ensuremath{\lambda_{\subtype}}}
+
+\DeclareMathOperator{\domin}{\geq\hspace{-3.5pt}\geq}
+
+\newcommand*{\dom}[1]{\operatorname{dom}\!\left( #1 \right)}
+\newcommand*{\cod}[1]{\operatorname{cod}\!\left( #1 \right)}
+\newcommand*{\id}{\mathrm{id}}
+\newcommand*{\op}{^{\mathrm{op}}}
+\newcommand*{\inv}{^{-1}}
+
+\newenvironment{grammar}
+  {\newcommand*{\is}{&::=&}
+   \newcommand*{\alt}{\;\mid\;}
+   \newcommand*{\altnl}{\\&\mid&}
+   \newcommand*{\isin}{&\in&}
+   \[\begin{array}{rrll}}
+  {\end{array}\]}
+
+\newcommand*{\bste}[4]{#1, #2 \vdash #3 \Downarrow #4}
+\newcommand*{\bstep}[5]{#1, #2 \vdash #3 \Downarrow \langle #4,\; #5\rangle}
+\newcommand*{\bstepp}[6]{#1, #2 \vdash #3 \Downarrow \langle #4,\; \langle  #5,\; #6\rangle \rangle}
+
+\newcommand*{\diverges}[2]{\langle #1, #2 \rangle \Uparrow}
+\newcommand*{\slam}[2]{\lambda #1.\;#2}
+\newcommand*{\slet}[4]{\texttt{let}~#1~#2 = #3~\texttt{in}~#4}
+\newcommand*{\sseq}{\texttt{;}}
+\newcommand*{\sif}[3]{\texttt{if}~#1~\texttt{then}~#2~\texttt{else}~#3}
+\newcommand*{\sfixs}[1]{\texttt{fix*}~#1}
+\newcommand*{\shandle}[2]{\texttt{with}~#1~\texttt{handle}~#2}
+\newcommand*{\sdo}[2]{\texttt{do}~#1~#2}
+\newcommand*{\smodule}[1]{\texttt{module}~#1~\texttt{end}}
+\newcommand*{\strusted}[1]{\texttt{trusted module}~#1~\texttt{end}}
+\newcommand*{\splugin}[2]{\texttt{plugin}~#1~#2~\texttt{end}}
+\newcommand*{\stint}{\texttt{int}}
+\newcommand*{\ststring}{\texttt{string}}
+\newcommand*{\stbool}{\texttt{bool}}
+\newcommand*{\stfun}[2]{#1~\texttt{->}~#2}
+\newcommand*{\sdlet}[3]{\texttt{let}~#1~#2 = #3}
+\newcommand*{\sexport}[1]{\texttt{export}~#1}
+
+\newcommand*{\vmodule}[1]{\text{mod}~#1}
+\newcommand*{\vtrusted}[1]{\text{tmod}~#1}
+\newcommand*{\vplugin}[2]{\text{plug}~#1~#2}
+
+\newcommand*{\vlam}[3]{\lambda^{#1} #2.\;#3}
+
+\newcommand*{\true}{\mathbf{tt}}
+\newcommand*{\false}{\mathbf{ff}}
+
+
+\title{LBTS project report}
+\author{Andrea Simone Costa \and Alessio Duè \and Alessandro Scala}
+
+\begin{document}
+
+\maketitle
+
+\section{Syntax}
+
+
+\begin{grammar}
+  e \is x \alt v \alt e.x
+  \altnl e~\mathit{bop}~e \alt \mathit{uop}~e
+  \altnl e~e \alt \slam x e \alt \sfixs {e+}
+  \altnl \slet {\mathit{attr}{*}} x e e
+  \altnl \sif e e e
+  \altnl \shandle h e \alt \sdo {\mathit{op}} {e*}
+  \altnl \smodule {d{*}} \alt \strusted {d{*}} \alt \splugin s {i{*}}
+  \\
+  \\
+  h \is \texttt{\{} (\mathit{op}~x* = e\texttt{,}){*}~\texttt{return}~x = e \texttt{\}}
+  \\
+  i \is x~\texttt{:}~\tau
+  \\
+  d \is \sdlet {\mathit{attr}{*}} x e \alt \sexport x
+  \\
+  \\
+  v \isin \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool}
+  % m \is \vmodule {d{*}} \alt \vtrusted {d{*}} \alt \vplugin {i{*}} {d{*}}
+  \\
+  x,\mathit{op} \isin \mathrm{Ide}
+  \\
+  \\
+  \mathit{attr} \is \texttt{public} \alt \texttt{secret} \alt \texttt{tainted} \alt \texttt{untainted}
+  \\
+  \tau \is \stint \alt \ststring \alt \stbool \alt \stfun \tau \tau
+\end{grammar}
+
+
+The surface syntax has ; let and forse rec boh zucchero per le funzioni let, return non obbligatorio
+
+\section{Operational semantics}
+
+Lbl lattice
+
+% https://q.uiver.app/#q=WzAsNCxbMSw0LCIoXFxtYXRocm17cHVibGljfSwgXFxtYXRocm17dW50YWludGVkfSkiXSxbMiwyLCIoXFxtYXRocm17cHVibGljfSwgXFxtYXRocm17dGFpbnRlZH0pIl0sWzAsMiwiKFxcbWF0aHJte3NlY3JldH0sIFxcbWF0aHJte3VudGFpbnRlZH0pIl0sWzEsMCwiKFxcbWF0aHJte3NlY3JldH0sIFxcbWF0aHJte3RhaW50ZWR9KSJdLFswLDIsIiIsMCx7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMiwzLCIiLDAseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzAsMSwiIiwyLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFsxLDMsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XV0=
+\[\begin{tikzcd}
+    & {(\mathrm{secret}, \mathrm{tainted})} \\
+    \\
+    {(\mathrm{secret}, \mathrm{untainted})} && {(\mathrm{public}, \mathrm{tainted})} \\
+    \\
+    & {(\mathrm{public}, \mathrm{untainted})}
+    \arrow[no head, from=3-1, to=1-2]
+    \arrow[no head, from=3-3, to=1-2]
+    \arrow[no head, from=5-2, to=3-1]
+    \arrow[no head, from=5-2, to=3-3]
+  \end{tikzcd}\]
+
+\begin{align*}
+  \mathrm{Val} &= (\mathbb N \cup \mathrm{ASCII}^* \cup \left\{ \true, \false \right\} \cup \mathrm{Fun} \cup \mathrm{Mod}) \times \mathrm{Lbl}
+  \\
+  \\
+  \mathrm{Env} &= \mathrm{Val}^{\mathrm{Ide}}
+  \\
+  \mathrm{Fun} &= \left\{ \vlam \Delta x e \mid \Delta \in \mathrm{Env}, x \in \mathrm{Ide}, e \in \mathrm{Exp} \right\}
+  \\
+  \\
+  \mathrm{Decl} &= \left\{ \mathrm{export}, \mathrm{private} \right\} % \times \left\{ \mathrm{public}, \mathrm{secret}, \varepsilon \right\} \times \left\{ \mathrm{tainted}, \mathrm{untainted}, \varepsilon \right\} 
+                  \times \mathrm{Ide} \times \mathrm{Exp}
+  \\
+  \mathrm{PlugDecl} &= \mathrm{Decl} \times \mathrm{Intf}
+  \\
+  \mathrm{Mod} &=
+                 \begin{aligned}[t]
+                   &\left\{\vmodule {d_1~\dots~d_{n}} \mid n \geq 0, d_{i} \in \mathrm{Decl}\right\} \\
+                   &\cup \left\{\vtrusted {d_1~\dots~d_{n}} \mid n \geq 0, d_{i} \in \mathrm{Decl}\right\} \\
+                   &\cup \left\{\vplugin {d_1~\dots~d_{n}} \mid n \geq 0, d_{i} \in \mathrm{PlugDecl}\right\}
+                 \end{aligned}
+\end{align*}
+where Exp is the set of syntactic elements generated by the nonterminal \(e\) in the grammar, and Intf by the nonterminal \(\tau\).
+
+
+\[ {\Downarrow} : \mathrm{Env} \times \mathrm{Lbl} \times \mathrm{Exp} \to \mathrm{Val} \cup (\mathrm{Ide} \times \mathrm{Fun} \times \mathrm{Val}^*) \]
+
+\begin{align*}
+  \Delta_{V} &= \pi_1 \circ \Delta \\
+  \Delta_{CI} &= \pi_2 \circ \Delta \\
+  \Delta_{C} &= \pi_1 \circ \pi_2 \circ \Delta \\
+  \Delta_{I} &= \pi_2 \circ \pi_2 \circ \Delta
+\end{align*}
+
+\begin{gather*}
+  \prftree[r]{[Var]}{\bstep{\Delta}{pc}{x}{\Delta_{V}(x)}{pc \sqcup \Delta_{CI}(x)}} \\[2.5ex]
+  %
+  \prftree[r]{[Lam]}{\bstep{\Delta}{pc}{\slam x e}{\vlam \Delta x e}{pc}}
+  \qquad
+  \prftree[r]{[Val]}{v \neq \slam x e}{\bstep{\Delta}{pc}{v}{\llbracket v \rrbracket}{pc}} \\[1.5ex]
+  %
+  \prftree[r]{[App]}
+  {\bstep{\Delta}{pc}{e_1}{\vlam {\Delta'} x e}{\ell_{f}}}
+  {\bste{\Delta}{pc}{e_2}{v}}
+  {\bstep{\ext {\Delta'} x v}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}}}
+  {\bstep{\Delta}{pc}{e_1~e_2}{u}{\ell_{f} \sqcup \ell_{u} \sqcup pc}} \\[2.5ex]
+  %
+  \prftree[r]{[Uop]}
+  {\bstep{\Delta}{pc}{e}{v}{\ell}}
+  {\bstep{\Delta}{pc}{\mathit{uop}~e}{\llbracket \mathit{uop} \rrbracket(v)}{pc \sqcup \ell}} \\[1.5ex]
+  %
+  \prftree[r]{[Bop]}
+  {\bstep{\Delta}{pc}{e_1}{v_1}{\ell_1}}
+  {\bstep{\Delta}{pc}{e_2}{v_2}{\ell_2}}
+  {\bstep{\Delta}{pc}{e_1~\mathit{bop}~e_2}{\llbracket \mathit{bop} \rrbracket(v_1, v_2)}{pc \sqcup \ell_1 \sqcup \ell_2}} \\[2.5ex]
+  %
+  \prftree[r]{[Do]}
+  {y~\text{fresh}}
+  {\bste{\Delta}{pc}{\sdo{op}{e_1~\dots~e_{n}}}{(op, \vlam \Delta y y, \langle e_1,\dots,e_{n} \rangle)}} \\[1.5ex]
+\end{gather*}
+
+\end{document}
+
+
+
+
+
+
+
