@@ -1,0 +1,4 @@
+(executable
+ (public_name scaml2)
+ (name main)
+ (libraries scaml2))

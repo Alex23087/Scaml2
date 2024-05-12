@@ -1,0 +1,4 @@
+(library
+ (name scaml2)
+ (libraries base stdio str)
+ (preprocess (pps ppx_jane)))
