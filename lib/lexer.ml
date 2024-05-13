@@ -3,7 +3,7 @@ open Stdio
 
 type token = TInt of int
            | TString of string
-           | TIde of string
+           | TIde of Ide.t
            | TParOpen | TParClosed | TSemicolon
            | TLet | TEquals
            | TPlus | TMinus | TStar | TSlash
@@ -45,7 +45,7 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                     Fun (fun s -> TString (String.(drop_suffix (drop_prefix s 1) 1))));
 
                    ("[a-zA-Z_][a-zA-Z0-9_]*",
-                    Fun (fun s -> TIde s))])
+                    Fun (fun s -> TIde (Ide.of_string s)))])
 
 let rec tokenize_line l lnum i toks =
   let try_re (re, act) =

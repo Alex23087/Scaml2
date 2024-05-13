@@ -2,11 +2,11 @@ open Base
 
 type token = TInt of int
            | TString of string
-           | TIde of string
+           | TIde of Ide.t
            | TParOpen | TParClosed | TSemicolon
            | TLet | TEquals
            | TPlus | TMinus | TStar | TSlash
-           | TDoubleEq | TLess | TMore | TLessEq | TMoreEq
+           | TLess | TMore | TLessEq | TMoreEq
            | TBackslash | TDot
            | TCons
 
