@@ -16,6 +16,37 @@ type t = Var of Ide.t
        | TruMod of t Decl.t list
        | Plugin of string * Intf.t list
 
+let wrap s = "(" ^ s ^ ")"
+
+let to_string e =
+  let indent i = String.init (i * 4) ~f:(Fn.const ' ') in
+  let rec aux i e =
+    (match e with
+     | Var x -> Ide.to_string x
+     | Lit v -> Val.to_string v
+     | Field (e, x) -> aux i e ^ "." ^ Ide.to_string x
+     | Bop (op, e1, e2) ->
+        aux i e1 ^ " " ^ Bop.to_string op ^ " " ^ aux (i + 1) e2
+        |> wrap
+     | Uop (op, e) -> Uop.to_string op ^ aux (i + 1) e
+     | App (e1, e2) -> aux i e1 ^ " " ^ aux (i + 1) e2 |> wrap
+     | Lam (x, e) -> "\\" ^ Ide.to_string x ^ ". " aux (i + 1) e |> wrap
+     | Fix es ->
+        let s = List.map es ~f:(aux (i + 1)) |> String.concat ~sep:", " in
+        "fix [" ^ s ^ "]" |> wrap
+     | Let (x, e, b) ->
+        "let " ^ Ide.to_string x ^ " = " ^ aux (i + 1) e ^ "in\n"
+        ^ indent i ^ (aux i b)
+     | If (c, t, e) ->
+        "if " ^ aux (i + 1) c ^ " then\n"
+          ^ indent (i + 1) ^ aux (i + 1) t ^ "\n"
+          ^ indent i ^ "else\n"
+          ^ indent (i + 1) ^ aux (i + 1) e
+     | _ -> failwith "unimplemented pretty printer"
+    )
+
+  in
+  aux 0 e
 
 
 (*

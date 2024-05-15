@@ -16,3 +16,4 @@ val equal_token : token -> token -> bool
 
 val tokenize : Stdio.In_channel.t -> (token list, lexer_error) Result.t
 
+val error_to_string : lexer_error -> string

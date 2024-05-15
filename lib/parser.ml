@@ -19,15 +19,12 @@ open Lexer
 
    <bopr4> ::= "::"
 
-
-
-
    <e> ::= let <id> = <e>; <e>
  *)
 
 
-let ( let* ) x f = Option.bind ~f x
-let ( let+ ) x f = Option.map ~f x
+(* let ( let* ) x f = Option.bind ~f x *)
+(* let ( let+ ) x f = Option.map ~f x *)
 let ( let< ) x f = Option.value_or_thunk ~default:f x
 
 exception ParseError
@@ -139,3 +136,7 @@ and parse_expr = function
 
   | toks -> parse_ops toks
 
+let parse toks =
+  let e, toks = parse_expr toks in
+  if List.is_empty toks then e
+  else raise ParseError

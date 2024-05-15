@@ -72,3 +72,6 @@ let tokenize ch =
     | None -> Ok (List.rev toks)
   in
   aux 1 []
+
+let error_to_string (msg, l, c) =
+  Printf.sprintf "Lexer error at line %d, column %d: %s" l c msg
