@@ -1,4 +1,6 @@
-type t
+open Base
+
+type t [@@deriving sexp]
 
 val to_string : t -> string
 val of_string : string -> t

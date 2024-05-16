@@ -1,7 +1,7 @@
-type conf = Secret | Public
-type intg = Tainted | Untainted
+type conf = Secret | Public [@@deriving sexp]
+type intg = Tainted | Untainted [@@deriving sexp]
 
-type t = conf * intg
+type t = conf * intg [@@deriving sexp]
 
 val conf_leq : conf -> conf -> bool
 val intg_leq : intg -> intg -> bool

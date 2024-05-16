@@ -15,7 +15,9 @@ type t = Var of Ide.t
        | Module of t Decl.t list
        | TruMod of t Decl.t list
        | Plugin of string * Intf.t list
+[@@deriving sexp]
 
+(*
 let wrap s = "(" ^ s ^ ")"
 
 let to_string e =
@@ -47,7 +49,7 @@ let to_string e =
 
   in
   aux 0 e
-
+*)
 
 (*
 class type ['repr] expr  = object
