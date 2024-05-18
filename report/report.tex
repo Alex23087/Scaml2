@@ -66,9 +66,12 @@
 \newcommand*{\diverges}[2]{\langle #1, #2 \rangle \Uparrow}
 \newcommand*{\slam}[2]{\lambda #1.\;#2}
 \newcommand*{\slet}[4]{\texttt{let}~#1~#2 = #3~\texttt{in}~#4}
+\newcommand*{\sletrec}[4]{\texttt{let rec}~#1~#2 = #3~\texttt{in}~#4}
+\newcommand*{\sletrecand}[5]{\texttt{let rec}~#1~#2 = #3~\texttt{and}~#4~\texttt{in}~#5}
 \newcommand*{\sseq}{\texttt{;}}
 \newcommand*{\sif}[3]{\texttt{if}~#1~\texttt{then}~#2~\texttt{else}~#3}
 \newcommand*{\sfix}[1]{\texttt{fix}~#1}
+\newcommand*{\sfixs}[1]{\texttt{fix*}~#1}
 \newcommand*{\shandle}[2]{\texttt{with}~#1~\texttt{handle}~#2}
 \newcommand*{\sdo}[2]{\texttt{do}~#1~#2}
 \newcommand*{\smodule}[1]{\texttt{module}~#1~\texttt{end}}
@@ -79,7 +82,12 @@
 \newcommand*{\stbool}{\texttt{bool}}
 \newcommand*{\stfun}[2]{#1~\texttt{->}~#2}
 \newcommand*{\sdlet}[3]{\texttt{let}~#1~#2 = #3}
+\newcommand*{\sdletand}[4]{\texttt{let}~#1~#2 = #3~\texttt{and}~#4}
+\newcommand*{\sdletrec}[3]{\texttt{let rec}~#1~#2 = #3}
 \newcommand*{\sexport}[1]{\texttt{export}~#1}
+\newcommand*{\stuple}[1]{\texttt{[}#1\texttt{]}}
+\newcommand*{\scomma}{\texttt{,}}
+\newcommand*{\sproj}[2]{#1\texttt{[} #2 \texttt{]}}
 
 \newcommand*{\vmodule}[1]{\text{mod}~#1}
 \newcommand*{\vtrusted}[1]{\text{tmod}~#1}
@@ -97,7 +105,7 @@
 
 \newcommand*{\sprint}[1]{\texttt{print}~#1}
 
-\newcommand*{\vdefer}[1]{\mathrm{defer}~#1}
+\newcommand*{\vdefer}[2]{\mathrm{defer}^{#1}~#2}
 \newcommand*{\vprivate}{\mathrm{private}}
 \newcommand*{\vexport}{\mathrm{export}}
 
@@ -116,20 +124,26 @@
 \begin{grammar}
   e \is x \alt v \alt e.x
   \altnl e~\mathit{bop}~e \alt \mathit{uop}~e
-  \altnl e~e \alt \slam x e \alt \sfix e
-  \altnl \slet {\mathit{attr}{*}} x e e
+  \alt \stuple{e \scomma \dots \scomma e} \alt \sproj e e
+  \altnl e~e \alt \slam x e \alt \sfix e \alt \sfixs e\alt \mathit{let}
   \altnl \sif e e e
   \altnl \shandle h e \alt \sdo {\mathit{op}} {e*}
-  \altnl \smodule {d{*}} \alt \strusted {d{*}} \alt \splugin s {i{*}}
+  \altnl \smodule {d{*}} \alt \strusted {d{*}} \alt \splugin s {\mathit{intf}{*}}
   \altnl \sassert e \alt \spredicate {\mathit{attr}} e
   \altnl \sprint e
   \\
   \\
+  \mathit{let} \is \slet {\mathit{attr}{*}} x e e
+  \altnl \texttt{let rec}~{\mathit{attr}{*}}~x = e~(\texttt{and}~\mathit{attr}{*}~x = e){*}~\texttt{in}~e
+  \\
+  \\
   h \is \texttt{\{} (\mathit{op}~x+ = e\texttt{,}){*}~\texttt{return}~x = e \texttt{\}}
   \\
-  i \is x~\texttt{:}~\tau
+  \mathit{intf} \is x~\texttt{:}~\tau
   \\
-  d \is \sdlet {\soptional{\sexport}~\mathit{attr}{*}} x e
+  d \is \sdlet {\mathit{attr}{*}} x e
+  \altnl \sdletrec {\mathit{attr}{*}} x e~(\texttt{and}~d){*}
+  \altnl \sexport x
   \\
   \\
   v \isin \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool}
@@ -140,7 +154,7 @@
   \\
   \mathit{attr} \is \texttt{public} \alt \texttt{secret} \alt \texttt{tainted} \alt \texttt{untainted}
   \\
-  \tau \is \stint \alt \ststring \alt \stbool \alt \stfun \tau \tau
+  \tau \is \stint \alt \ststring \alt \stbool \alt \stfun \tau \tau \alt \stuple{\tau \scomma \dots \scomma \tau}
 \end{grammar}
 
 
@@ -164,25 +178,25 @@ Lbl lattice
   \end{tikzcd}\]
 
 \begin{align*}
-  \mathrm{Val} &= (\mathbb N \cup \mathrm{ASCII}^* \cup \left\{ \true, \false \right\} \cup \mathrm{Fun} \cup \mathrm{Defer} \cup \mathrm{Mod} \cup \mathrm{Decl}) \times \mathrm{Lbl}
+  \mathrm{Val} &= (\mathbb N \cup \mathrm{ASCII}^* \cup \left\{ \true, \false \right\} \cup \mathrm{Fun} \cup \mathrm{Val}^* \cup \mathrm{Defer} \cup \mathrm{Mod}) \times \mathrm{Lbl}
   \\
   \\
   \mathrm{Env} &= \mathrm{Val}^{\mathrm{Ide}}
   \\
   \mathrm{Fun} &= \left\{ \vlam \Delta x e \mid \Delta \in \mathrm{Env}, x \in \mathrm{Ide}, e \in \mathrm{Exp} \right\}
   \\
-  \mathrm{Defer} &= \left\{ \vdefer e \mid e \in \mathrm{Exp} \right\}
+  \mathrm{Defer} &= \left\{ \vdefer \Delta e \mid \Delta \in \mathrm{Env}, e \in \mathrm{Exp} \right\}
   \\
   \\
-  \mathrm{Decl} &= \left\{ \mathrm{export}, \mathrm{private} \right\} % \times \left\{ \mathrm{public}, \mathrm{secret}, \varepsilon \right\} \times \left\{ \mathrm{tainted}, \mathrm{untainted}, \varepsilon \right\} 
+  \mathrm{Decl} &= \left\{ \mathrm{export}, \mathrm{private} \right\} % \times \left\{ \mathrm{public}, \mathrm{secret}, \varepsilon \right\} \times \left\{ \mathrm{tainted}, \mathrm{untainted}, \varepsilon \right\}
                   \times \mathrm{Ide} \times \mathrm{Val}
   \\
   \mathrm{PlugDecl} &= \mathrm{Decl} \times \mathrm{Intf}
   \\
   \mathrm{Mod} &=
                  \begin{aligned}[t]
-                   &\left\{\vmodule {d_1~\dots~d_{n}} \mid n \geq 0, d_{i} \in \mathrm{Decl}\right\} \\
-                   &\cup \left\{\vtrusted {d_1~\dots~d_{n}} \mid n \geq 0, d_{i} \in \mathrm{Decl}\right\} \\
+                   &\left\{\vmodule \Delta \mid \Delta \in \mathrm{Env}\right\} \\
+                   &\cup \left\{\vtrusted \Delta \mid \Delta \in \mathrm{Env}\right\} \\
                    &\cup \left\{\vplugin {d_1~\dots~d_{n}} \mid n \geq 0, d_{i} \in \mathrm{PlugDecl}\right\}
                  \end{aligned}
 \end{align*}
@@ -201,79 +215,115 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
 \begin{gather*}
   \prftree[r]{[Var]}
   {\Delta(x) = \langle v, \ell \rangle}
-  {v \neq \vdefer e}
+  {v \neq \vdefer {\Delta'} e}
   {\bstep{\Delta}{pc}{x}{v}{pc \sqcup \ell}}
   \qquad
   \prftree[r]{[VarDefer]}
-  {\Delta(x) = \langle \vdefer e, \ell_1 \rangle}
-  {\bstep{\Delta}{pc}{e}{v}{\ell_2}}
+  {\Delta(x) = \langle \vdefer {\Delta'} e, \ell_1 \rangle}
+  {\bstep{\Delta'}{pc}{e}{v}{\ell_2}}
   {\bstep{\Delta}{pc}{x}{v}{pc \sqcup \ell_1 \sqcup \ell_2}}
-  \\[2.5ex]
+  \\[2.5ex]\displaybreak[1]
+  \prftree[r]{[Proj]}
+  {\bstep{\Delta}{pc}{e_1}{\langle \langle v_j, \ell_{v_{j}} \rangle\rangle_{j \in [0,\dots,n-1]}}{\ell_1}}
+  {\bstep{\Delta}{pc}{e_2}{i}{\ell_2}}
+  {0 \leq i \leq n-1}
+  {v_{i} \neq \vdefer {\Delta'} e}
+  {\bstep{\Delta}{pc}{\sproj {e_1} {e_2}}{v_{i}}{pc \sqcup \ell_1 \sqcup \ell_2 \sqcup \ell_{v_i}}}
+  \\[1.5ex]\displaybreak[0]
+  \prftree[r]{[ProjDefer]}
+  {\prfStackPremises
+    {\bstep{\Delta}{pc}{e_1}{\langle \langle v_j, \ell_{v_{j}} \rangle\rangle_{j \in [0,\dots,n-1]}}{\ell_1}}
+    {\bstep{\Delta}{pc}{e_2}{i}{\ell_2} \quad {0 \leq i \leq n-1}}
+    {v_{i} = \vdefer {\Delta'} e \quad \bstep{\Delta'}{pc}{e}{v}{\ell_3}}}
+  {\bstep{\Delta}{pc}{\sproj {e_1} {e_2}}{v}{pc \sqcup \ell_1 \sqcup \ell_2 \sqcup \ell_{v_i} \sqcup \ell_3}}
+  \\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[Lam]}{\bstep{\Delta}{pc}{\slam x e}{\vlam \Delta x e}{pc}}
   \qquad
-  \prftree[r]{[Val]}{v \neq \slam x e}{\bstep{\Delta}{pc}{v}{\llbracket v \rrbracket}{pc}} \\[1.5ex]
+  \prftree[r]{[Val]}{v \neq \slam x e}{\bstep{\Delta}{pc}{v}{\llbracket v \rrbracket}{pc}} \\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[App]}
   {\bstep{\Delta}{pc}{e_1}{\vlam {\Delta'} x e}{\ell_{f}}}
   {\bste{\Delta}{pc}{e_2}{\valpair v}}
   {\bstep{\ext {\Delta'} x {\valpair v}}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}}}
-  {\bstep{\Delta}{pc}{e_1~e_2}{u}{pc \sqcup \ell_{f} \sqcup \ell_{u}}} \\[2.5ex]
+  {\bstep{\Delta}{pc}{e_1~e_2}{u}{pc \sqcup \ell_{f} \sqcup \ell_{u}}} \\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[Uop]}
   {\bstep{\Delta}{pc}{e}{v}{\ell}}
-  {\bstep{\Delta}{pc}{\mathit{uop}~e}{\llbracket \mathit{uop} \rrbracket(v)}{pc \sqcup \ell}} \\[1.5ex]
+  {\bstep{\Delta}{pc}{\mathit{uop}~e}{\llbracket \mathit{uop} \rrbracket(v)}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[Bop]}
   {\bstep{\Delta}{pc}{e_1}{v_1}{\ell_1}}
   {\bstep{\Delta}{pc}{e_2}{v_2}{\ell_2}}
-  {\bstep{\Delta}{pc}{e_1~\mathit{bop}~e_2}{\llbracket \mathit{bop} \rrbracket(v_1, v_2)}{pc \sqcup \ell_1 \sqcup \ell_2}} \\[2.5ex]
+  {\bstep{\Delta}{pc}{e_1~\mathit{bop}~e_2}{\llbracket \mathit{bop} \rrbracket(v_1, v_2)}{pc \sqcup \ell_1 \sqcup \ell_2}} \\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[IfTrue]}
   {\bstep{\Delta}{pc}{e_c}{\true}{\ell_{c}}}
   {\bstep{\Delta}{pc \sqcup \ell_{c}}{e_t}{v}{\ell_t}}
-  {\bstep{\Delta}{pc}{\sif {e_{c}} {e_{t}} {e_{e}}}{v}{pc \sqcup \ell_c \sqcup \ell_t}} \\[1.5ex]
+  {\bstep{\Delta}{pc}{\sif {e_{c}} {e_{t}} {e_{e}}}{v}{pc \sqcup \ell_c \sqcup \ell_t}} \\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[IfFalse]}
   {\bstep{\Delta}{pc}{e_c}{\false}{\ell_{c}}}
   {\bstep{\Delta}{pc \sqcup \ell_{c}}{e_e}{v}{\ell_e}}
-  {\bstep{\Delta}{pc}{\sif {e_{c}} {e_{t}} {e_{e}}}{v}{pc \sqcup \ell_c \sqcup \ell_e}} \\[2.5ex]
+  {\bstep{\Delta}{pc}{\sif {e_{c}} {e_{t}} {e_{e}}}{v}{pc \sqcup \ell_c \sqcup \ell_e}} \\[2.5ex]\displaybreak[1]
+  %
+  \prftree[r]{[Fix]}
+  {\bstep{\Delta}{pc}{e}{\vlam {\Delta'} x {e'}}{\ell}}
+  {\bstep{\ext {\Delta'}{x}{\langle \vdefer {\Delta'} {\sfix {\slam x {e'}}}, \ell \rangle}}{pc \sqcup \ell}{e'}{v}{\ell'}}
+  {\bstep{\Delta}{pc}{\sfix e}{v}{pc \sqcup \ell \sqcup \ell'}}\\[1.5ex]\displaybreak[0]
+  %
+  \prftree[r]{[Fix*]}
+  {\prfStackPremises
+    % {\forall i \in [1,n].\; \bste{\Delta}{pc}{e_i}{\overbrace{\langle\vlam {\Delta_i'} {x_{i}} {e_i'},\;{\ell_i}\rangle}^{f_{i}}}}
+    {\bstep{\Delta}{pc}{e}{\langle \overbrace{\langle\vlam {\Delta_i'} {x_{i}} {e_i'},\;{\ell_i}\rangle}^{f_{i}} \rangle_{i \in [1,n]}}{\ell}}
+    {\Delta'' \triangleq \Delta[y_1 \mapsto f_1,\dots,y_{n} \mapsto f_{n}] \quad y_{i} \text{ fresh}}
+    {\forall i \in [1,n].\; \bste{\ext {\Delta_{i}'}{x_i}{\langle
+          % (\vdefer {(\sfixs f_1 \dots f_{n}).1},
+          % \dots,
+          % \vdefer {(\sfixs f_1 \dots f_{n}).n})
+          \langle \vdefer {\Delta''\hspace{-0.5em}} {(\sfixs \stuple{y_1 \scomma \dots \scomma y_{n}}).j},\; \ell_{j} \rangle_{j \in [1, n]}
+          ,\; \ell_{i} \rangle}}{pc \sqcup \ell_{i}}{e_{i}'}{\smash{\overbrace{\langle v_{i},\; \ell_{i}' \rangle}^{\valpair v_{i}}}}}}
+  {\bstep{\Delta}{pc}{\sfixs{e}}{\langle\valpair{v}_1, \dots, \valpair{v}_{n}\rangle}{pc \sqcup \ell \sqcup \bigsqcup_{i=1}^{n} \ell_{i} \sqcup \bigsqcup_{i=1}^{n} \ell_{i}'}}\\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[Let]}
   {\bstep{\Delta}{pc}{e_1}{v_1}{\ell_{1}}}
   {\ell_1 \sqsubseteq \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
-  {\bste{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{\valpair v}}
-  {\bste{\Delta}{pc}{\slet {a_1~\dots~a_{n}} x {e_1} {e_2}}{\valpair v}} \\[2.5ex]
+  {\bstep{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{v}{\ell}}
+  {\bstep{\Delta}{pc}{\slet {a_1~\dots~a_{n}} x {e_1} {e_2}}{v}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
   %
-  \prftree[r]{[Fix]}
-  {\bstep{\Delta}{pc}{e}{\vlam {\Delta'} x {e'}}{\ell}}
-  {\bste{\ext {\Delta'}{x}{\langle \vdefer {\sfix {\vlam {\Delta'} x {e'}}}, \ell \rangle}}{pc \sqcup \ell}{e'}{\valpair v}}
-  {\bste{\Delta}{pc}{\sfix e}{\valpair v}}\\[2.5ex]
+  % TODO rimettere?
+  % \prftree[r]{[LetRec]}
+  % {\prfStackPremises
+  %   {\bstep{\Delta}{pc}{\sfix{\slam x {e_1}}}{v_1}{\ell_{1}}}
+  %   {{\ell_1 \sqsubseteq \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}} \quad
+  %   {\bste{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{\valpair v}}}}
+  % {\bste{\Delta}{pc}{\sletrec {a_1~\dots~a_{n}} x {e_1} {e_2}}{\valpair v}} \\[1.5ex]\displaybreak[0]
   %
-  \prftree[r]{[DeclPriv]}
-  {\bstep{\Delta}{pc}{e}{v}{\ell_1}}
-  {\ell_1 \sqsubseteq \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
-  {\ell_2 \triangleq \ell_1 \sqcup  \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}}
-  {\bstep{\Delta}{pc}{\sdlet {a_1~\dots~a_{n}} x {e}}{\langle \vprivate, x, \langle v, \ell_2 \rangle \rangle}{\ell_2}} \\[2.5ex]
-  %
-  \prftree[r]{[DeclExport]}
-  {\bstep{\Delta}{pc}{e}{v}{\ell_1}}
-  {\ell_1 \sqsubseteq \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
-  {\ell_2 \triangleq \ell_1 \sqcup  \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}}
-  {\bstep{\Delta}{pc}{\sdlet {\sexport~a_1~\dots~a_{n}} x {e}}{\langle \vexport, x, \langle v, \ell_2 \rangle \rangle}{\ell_2}} \\[2.5ex]
+  \prftree[r]{[LetRecAnd]}
+  {\prfStackPremises
+    {\bste{\Delta}{pc}{\sfixs{\stuple{
+            \slam {x_{1}} {e_1}
+            \scomma \dots \scomma
+            \slam {x_m} {e_m}}
+        }}{\langle \langle \langle v_{i}, \ell_{i} \rangle \rangle_{i \in [1,m]} ,\; \ell \rangle}}
+    {{\forall i \in [1,m].\; \ell_i \sqsubseteq \llbracket a_1^{i},\dots,a_{n}^{i} \rrbracket_{\mathrm{attr}}^{\top}} \quad
+      {\valpair u_{i} \triangleq \langle v_i, \ell_i \sqcup  \llbracket a_1^{i},\dots,a_{n}^{i} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}
+    {\bstep{\Delta[x_1 \mapsto \valpair u_{1}, \dots, x_m \mapsto \valpair u_{m}]}{pc}{e}{v}{\ell'}}}
+  {\bstep{\Delta}{pc}{\texttt{let rec}~{a_1^{1}~\dots~a_{n_{1}}^{1}}~x_{i} = {e_1}~(\texttt{and}~{a_1^{i}~\dots~a_{n_{i}}^{i}}~x_{i} = e_i)_{i \in [2,m]}~\texttt{in}~e}{v}{pc \sqcup \ell'}} \\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[Module]}
-  {\forall i \in [1, n].\; \bstep {\Delta} {pc} {d_i} {\partial_i} {\ell_i}}
-  {\bstep{\Delta}{pc}{\strusted {d_1 \dots d_{n}}}{\vmodule{\partial_1 \dots \partial_n}}{pc}}\\[2.5ex]
+  % {\forall i \in [1, n].\; \bstep {\Delta} {pc} {d_i} {\partial_i} {\ell_i}}
+  {\bstep{\Delta}{pc}{\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}{\vlam {\Delta'} x x}{\ell}}
+  {\bstep{\Delta}{pc}{\smodule {d_1 \dots d_{n}}}{\vmodule{\Delta'_{\mid \left\{ x \;\mid\; \sexport x \,\in\, \left\{ d_1,\dots,d_{n} \right\}\right\}}}}{pc}}\\[1.5ex]\displaybreak[1]
   %
-  \prftree[r]{[ModuleTrusted]}
-  {\forall i \in [1, n].\; \bstep {\Delta} {pc} {d_i} {\partial_i} {\ell_i}}
-  {\bstep{\Delta}{pc}{\splugin {d_1 \dots d_{n}}}{\vtrusted{\partial_1 \dots \partial_n}}{pc}}\\[2.5ex]
+  \prftree[r]{[TrustedModule]}
+  % {\forall i \in [1, n].\; \bstep {\Delta} {pc} {d_i} {\partial_i} {\ell_i}}
+  {\bstep{\Delta}{pc}{\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}{\vlam {\Delta'} x x}{\ell}}
+  {\bstep{\Delta}{pc}{\strusted {d_1 \dots d_{n}}}{\vtrusted{\Delta'_{\mid \left\{ x \;\mid\; \sexport x \,\in\, \left\{ d_1,\dots,d_{n} \right\}\right\}}}}{pc}}\\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[Plugin]}
   {\forall i \in [1, n].\; \bstep {\Delta} {pc} {d_i} {\partial_i} {\ell_i}}
-  {\bstep{\Delta}{pc}{\smodule {d_1 \dots d_{n}}}{\vplugin{\partial_1 \dots \partial_n}}{pc}}\\[2.5ex]
-  %
+  {\bstep{\Delta}{pc}{\splugin {d_1 \dots d_{n}}}{\vplugin{\partial_1 \dots \partial_n}}{pc}}\\[2.5ex]\displaybreak[1]
 \end{gather*}
 
 TODO: Check Module, Decl, finish Trusted and Plugin
@@ -290,30 +340,43 @@ Strict mode Let e Decl sempre \(\top\).
 
 Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
 
+\begin{align*}
+  \llbracket \varepsilon \rrbracket_{\mathrm{mod \to let}} &\triangleq \slam{x}{x} \\
+  \llbracket \sdlet {\mathit{attr}{*}} x e, d_1, \dots,d_{n} \rrbracket_{\mathrm{mod \to let}} &\triangleq \slet {\mathit{attr}{*}} x e {\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}} \\
+  \left\llbracket
+  \begin{aligned}
+    &\left.\begin{aligned}
+      &\texttt{let rec}~{a_1^{1}~\dots~a_{n_{1}}^{1}}~x_{i} = {e_1} \\
+      &(\texttt{and}~{a_1^{i}~\dots~a_{n_{i}}^{i}}~x_{i} = e_i)_{i \in [2,m]},
+    \end{aligned}\right\} l \\
+    &d_1,\dots,d_{n}
+  \end{aligned}
+   \right\rrbracket_{{\mathrm{mod \to let}}} &\triangleq l \texttt{ in } {\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}
+\end{align*}
 
 \begin{gather*}
   \prftree[r]{[Do]}
   {\forall i \in [1,n].\; \bste{\Delta}{pc}{e_{i}}{\valpair v_{i}}}
   {y~\text{fresh}}
-  {\bste{\Delta}{pc}{\sdo{op}{e_1~\dots~e_{n}}}{\langle op, \vlam \Delta y y, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc \rangle}} \\[2.5ex]
+  {\bste{\Delta}{pc}{\sdo{op}{e_1~\dots~e_{n}}}{\langle op, \vlam \Delta y y, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc \rangle}} \\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[HandleRet]}
   {\bste{\Delta}{pc}{e}{\valpair v}}
   {(\texttt{return}~x=e_{\mathrm{ret}}) \in h}
   {\bste{\ext \Delta x {\valpair v}}{pc}{e_{\mathrm{ret}}}{\nu}}
-  {\bste{\Delta}{pc}{\shandle h e}{\nu}} \\[1.5ex]
+  {\bste{\Delta}{pc}{\shandle h e}{\nu}} \\[1.5ex]\displaybreak[0]
   %
   % \prftree[r]{[HandleRetRaise]}
   % {\prfStackPremises
   % {{\bste{\Delta}{pc}{e}{\valpair v}} \quad {(\texttt{return}~x=e_{\mathrm{ret}}) \in h}}
   % {\bste{\ext \Delta x {\valpair v}}{pc}{e_{\mathrm{ret}}}{\langle op, c, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc' \rangle}}}
-  % {\bste{\Delta}{pc}{\shandle h e}{\langle op, c, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc'\rangle}} \\[1.5ex]
+  % {\bste{\Delta}{pc}{\shandle h e}{\langle op, c, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc'\rangle}} \\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[HandleRaise]}
     {\bste{\Delta}{pc}{e}{\langle op, c, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc' \rangle}}
     {(op~x_1~\dots~x_{n}~k=e_{\mathrm{op}}) \notin h}
     {y~\text{fresh}}
-  {\bste{\Delta}{pc}{\shandle h e}{\langle op, \vlam \Delta y {\shandle h {c~y}}, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc' \rangle}} \\[1.5ex]
+  {\bste{\Delta}{pc}{\shandle h e}{\langle op, \vlam \Delta y {\shandle h {c~y}}, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc' \rangle}} \\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[HandleOp]}
   {\prfStackPremises
@@ -321,7 +384,7 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
     {(op~x_1~\dots~x_{n}~k=e_{\mathrm{op}}) \in h}
     {{c' = \vlam \Delta y {\shandle h {c~y}}} \quad {y~\text{fresh}}}
     {\bste{\Delta[x_1 \mapsto \valpair v_1,\dots,x_{n} \mapsto \valpair v_{n}, k \mapsto \langle c', pc' \rangle]}{pc'}{e_{\mathrm{op}}}{\nu}}}
-  {\bste{\Delta}{pc}{\shandle h e}{\nu}} \\[2.5ex]
+  {\bste{\Delta}{pc}{\shandle h e}{\nu}} \\[2.5ex]\displaybreak[1]
   %
   % \prftree[r]{[HandleOpRaise]}
   % {\prfStackPremises
@@ -329,18 +392,18 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
   %   {(op~x_1~\dots~x_{n}~k=e_{\mathrm{op}}) \in h}
   %   {{c' = \vlam \Delta y {\shandle h {c~y}}} \quad {y~\text{fresh}}}
   %   {\bste{\Delta[x_1 \mapsto \valpair v_1,\dots,x_{n} \mapsto \valpair v_{n}, k \mapsto \langle c', pc' \rangle]}{pc'}{e_{\mathrm{op}}}{\langle op', c', \langle \valpair v_1',\dots,\valpair v_{n}' \rangle, pc'' \rangle}}}
-  % {\bste{\Delta}{pc}{\shandle h e}{{\langle op', c', \langle \valpair v_1',\dots,\valpair v_{n}' \rangle, pc'' \rangle}}} \\[2.5ex]
+  % {\bste{\Delta}{pc}{\shandle h e}{{\langle op', c', \langle \valpair v_1',\dots,\valpair v_{n}' \rangle, pc'' \rangle}}} \\[2.5ex]\displaybreak[1]
   %
   \prftree[r]{[BopRaiseL]}
   {\bste{\Delta}{pc}{e_1}{\langle op, c, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc' \rangle}}
   {y~\text{fresh}}
-  {\bste{\Delta}{pc}{e_1~\mathit{bop}~e_2}{\langle op, \vlam \Delta y {(c~y)~\mathit{bop}~e_2, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc'\rangle}}} \\[1.5ex]
+  {\bste{\Delta}{pc}{e_1~\mathit{bop}~e_2}{\langle op, \vlam \Delta y {(c~y)~\mathit{bop}~e_2, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc'\rangle}}} \\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[BopRaiseR]}
   {\bste{\Delta}{pc}{e_1}{\valpair v}}
   {\bste{\Delta}{pc}{e_2}{\langle op, c, \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc' \rangle}}
   {x,y~\text{fresh}}
-  {\bste{\Delta}{pc}{e_1~\mathit{bop}~e_2}{\langle op, \vlam {\ext \Delta x {\valpair v}} y {x~\mathit{bop}~(c~y), \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc'\rangle}}} \\[1.5ex]
+  {\bste{\Delta}{pc}{e_1~\mathit{bop}~e_2}{\langle op, \vlam {\ext \Delta x {\valpair v}} y {x~\mathit{bop}~(c~y), \langle \valpair v_1,\dots,\valpair v_{n} \rangle, pc'\rangle}}} \\[1.5ex]\displaybreak[0]
 \end{gather*}
 
 TODO pc in e2 BopRaiseL
@@ -348,7 +411,16 @@ TODO join pc pc' in HandleOp?
 
 TODO label App e Fix
 
+TODO fix* lambda più parametri c'è un solo ambiente cosa vuol dire; si può togliere join?
+
 dire cosa sono c, k, valpair, \(\nu\), \(a\) (attributi)
+
+
+let x = declassify asd in x
+non fa niente se pc è secret, mettere operatore che fa declassify di pc
+
+
+TODO \(\ell\) in LetRecAnd non usato
 
 \end{document}
 
