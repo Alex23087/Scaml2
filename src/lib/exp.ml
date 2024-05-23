@@ -3,18 +3,35 @@ open Base
 type t = Var of Ide.t
        | Lit of t Val.t
        | Field of t * Ide.t
+
        | Bop of Bop.t * t * t
        | Uop of Uop.t * t
+
+       | Tuple of t list
+       | TupleField of t * t
+
        | App of t * t
        | Lam of Ide.t * t
-       | Fix of t list
-       | Let of Ide.t * t * t
+
+       | Fix of t
+       | Fixs of t
+
+       | Let of Let_attr.t list * Ide.t * t * t
+       | LetRec of (Let_attr.t list * Ide.t * t) list * t
+
        | If of t * t * t
+
        | Handle of t Handler.t * t
        | Do of Ide.t * t list
+
        | Module of t Decl.t list
        | TruMod of t Decl.t list
        | Plugin of string * Intf.t list
+
+       | Assert of t
+       | HasAttr of Let_attr.t * t
+
+       | Print of t
 [@@deriving sexp]
 
 (*

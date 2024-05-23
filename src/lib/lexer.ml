@@ -1,16 +1,39 @@
 open Base
 open Stdio
 
-type token = TInt of int
+open Let_attr
+
+type token = TIde of Ide.t
+           (* literals *)
+           | TInt of int
            | TString of string
-           | TIde of Ide.t
-           | TParOpen | TParClosed | TSemicolon
-           | TLet | TEquals
+           | TBool of bool
+
+           (* delimiters *)
+           | TParOpen | TParClosed
+           | TSquareOpen | TSquareClosed
+           | TCurlyOpen | TCurlyClosed
+           | TComma | TSemicolon | TDot | TColon
+           | TBackslash
+
+           (* operators *)
+           | TEquals
            | TPlus | TMinus | TStar | TSlash
            | TLess | TMore | TLessEq | TMoreEq
-           | TBackslash | TDot
-           | TCons
-[@@deriving equal]
+           | TLogAnd | TOr | TNot
+           | TFix | TFixs
+
+           (* keywords *)
+           | TLet | TRec | TAnd | TIn | TLetAttr of Let_attr.t
+           | TIf | TThen | TElse | TEnd
+           | TWith | THandle | TDo
+           | TModule | TTrusted | TPlugin | TExport
+           | TAssert | THasAttr
+           | TPrint
+
+           (* types *)
+           | TTint | TTstring | TTbool | TTarrow
+[@@deriving equal, sexp]
 
 type lexer_error = string * int * int
 
@@ -19,22 +42,67 @@ type action = Tok of token
             | Ignore
 
 let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
-                [("("   , Tok TParOpen  );
-                 (")"   , Tok TParClosed);
-                 (";"   , Tok TSemicolon);
-                 ("let" , Tok TLet      );
-                 ("="   , Tok TEquals   );
-                 ("+"   , Tok TPlus     );
-                 ("-"   , Tok TMinus    );
-                 ("*"   , Tok TStar     );
-                 ("/"   , Tok TSlash    );
-                 ("<="  , Tok TLessEq   );
-                 (">="  , Tok TMoreEq   );
-                 ("<"   , Tok TLess     );
-                 (">"   , Tok TMore     );
-                 ("\\"  , Tok TBackslash);
-                 ("."   , Tok TDot      );
-                 ("::"  , Tok TCons     )])
+                [("true", Tok (TBool true));
+                 ("false", Tok (TBool false));
+
+                 ("int", Tok TTint);
+                 ("string", Tok TTstring);
+                 ("bool", Tok TTbool);
+                 ("->", Tok TTarrow);
+
+                 ("(", Tok TParOpen  );  (")", Tok TParClosed);
+                 ("[", Tok TSquareOpen); ("]", Tok TSquareClosed);
+                 ("{", Tok TCurlyOpen);  ("}", Tok TCurlyClosed);
+
+                 (",", Tok TComma);
+                 (";", Tok TSemicolon);
+                 (".", Tok TDot);
+                 (":", Tok TColon);
+                 ("\\", Tok TBackslash);
+
+                 ("=", Tok TEquals);
+                 ("+", Tok TPlus);
+                 ("-", Tok TMinus);
+                 ("*", Tok TStar);
+                 ("/", Tok TSlash);
+                 ("<=", Tok TLessEq);
+                 (">=", Tok TMoreEq);
+                 ("<", Tok TLess);
+                 (">", Tok TMore);
+                 ("&&", Tok TLogAnd);
+                 ("||", Tok TOr);
+                 ("!", Tok TNot);
+                 ("fix*", Tok TFixs);
+                 ("fix", Tok TFix);
+
+                 ("let", Tok TLet);
+                 ("rec", Tok TRec);
+                 ("and", Tok TAnd);
+                 ("in", Tok TIn);
+
+                 ("if", Tok TIf);
+                 ("then", Tok TThen);
+                 ("else", Tok TElse);
+                 ("end", Tok TEnd );
+
+                 ("with", Tok TWith);
+                 ("handle", Tok THandle);
+                 ("do", Tok TDo);
+
+                 ("module", Tok TModule);
+                 ("trusted", Tok TTrusted);
+                 ("plugin", Tok TPlugin);
+                 ("export", Tok TExport);
+
+                 ("assert", Tok TAssert );
+                 ("has_attr", Tok THasAttr);
+
+                 ("print", Tok TPrint);
+
+                 ("public", Tok (TLetAttr Public));
+                 ("secret", Tok (TLetAttr Secret));
+                 ("tainted", Tok (TLetAttr Tainted));
+                 ("untainted", Tok (TLetAttr Untainted))])
              @ (List.map ~f:(fun (s, a) -> (Str.regexp s, a))
                   [(" +", Ignore);
 
@@ -75,3 +143,5 @@ let tokenize ch =
 
 let error_to_string (msg, l, c) =
   Printf.sprintf "Lexer error at line %d, column %d: %s" l c msg
+
+let token_to_string tok = sexp_of_token tok |> Sexp.to_string_hum

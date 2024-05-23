@@ -4,6 +4,3 @@ open Base
 type 'a t = { ops : (Ide.t * Ide.t list * 'a) list;
               ret : Ide.t * 'a }
 [@@deriving sexp]
-
-let foobar = { ops = []; ret = (Ide.of_string "x"), 1; }
-let bazbax x = x.ops, x.ret
