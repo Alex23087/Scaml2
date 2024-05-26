@@ -5,7 +5,7 @@ type 'a naked_val = Int of int
                   | Bool of bool
                   | Fun of 'a t Env.t * Ide.t * 'a
                   | Defer of 'a
-                  | Mod of unit (* TODO *)
+                  | Mod of 'a t Env.t
 [@@deriving sexp]
 
 and 'a t = 'a naked_val * Lbl.t

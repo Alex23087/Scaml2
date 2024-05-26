@@ -23,9 +23,20 @@ open Lexer
 (* let ( let+ ) x f = Option.map ~f x *)
 let ( let< ) x f = Option.value_or_thunk ~default:f x
 
-let tts = token_to_string
-
 exception ParseError of string
+
+let raise_expected_str e f =
+  raise (ParseError ("expected " ^ e ^ ", found " ^ token_to_string f))
+
+let raise_expected_tok e f =
+  raise (ParseError ("expected " ^ token_to_string e
+                     ^ ", found " ^ token_to_string f))
+
+let raise_expected_str_eof e =
+  raise (ParseError ("expected " ^ e ^ ", found EOF"))
+
+let raise_expected_tok_eof e =
+  raise (ParseError ("expected " ^ token_to_string e ^ ", found EOF"))
 
 let ops =
   Bop.(Uop.([([(TMinus, Minus);
@@ -68,8 +79,8 @@ let expect t toks =
   match toks with
   | t' :: toks ->
      if equal_token t t' then toks
-     else raise (ParseError ("expected " ^ tts t ^ ", found " ^ tts t'))
-  | _ -> raise (ParseError ("expected " ^ tts t ^ ", found EOF"))
+     else raise_expected_tok t t'
+  | _ -> raise_expected_tok_eof t
 
 let parse_attrs toks =
   let (attrs, toks) = List.split_while toks ~f:(function
@@ -162,15 +173,64 @@ and parse_atom = function
      let toks = expect TParClosed toks in
      (e, toks)
 
-  (* | TSquareOpen -> TODO parse tupla *)
+  | TSquareOpen :: toks -> parse_tuple toks
+
+  | TIf :: toks ->
+     let c, toks = parse_expr toks in
+     let toks = expect TThen toks in
+     let t, toks = parse_expr toks in
+     (match toks with
+      | TEnd :: toks -> (Exp.If (c, t, (Exp.Tuple [])), toks)
+      | TElse :: toks ->
+         let e, toks = parse_expr toks in
+         let toks = expect TEnd toks in
+         (Exp.If (c, t, e), toks)
+
+      | t :: _ -> raise_expected_str "'else' or 'end'" t
+      | _ -> raise_expected_str_eof "'else' or 'end'")
+
+  | TModule :: toks -> parse_module toks
 
   | TInt x :: toks -> (Exp.Lit (Val.int x), toks)
   | TString x :: toks -> (Exp.Lit (Val.string x), toks)
   | TBool x :: toks -> (Exp.Lit (Val.bool x), toks)
   | TIde x :: toks -> (Exp.Var x, toks)
 
-  | t :: _ -> raise (ParseError ("expected atom, found " ^ tts t))
-  | _ -> raise (ParseError "expected atom, found EOS")
+  | t :: _ -> raise_expected_str "atom" t
+  | _ -> raise_expected_str_eof "atom"
+
+and parse_tuple toks =
+  let rec aux toks res =
+    let e, toks = parse_expr toks in
+    match toks with
+    | TColon :: toks -> aux toks (e :: res)
+    | TSquareClosed :: toks -> (List.rev (e :: res), toks)
+    | t :: _ -> raise_expected_str "',' or ']'" t
+    | [] -> raise_expected_str_eof "',' or ']'"
+  in
+  let es, toks = aux toks [] in
+  (Exp.Tuple es, toks)
+
+and parse_module toks =
+  let rec aux toks res =
+    match toks with
+    | TLet :: toks ->
+       let (attrs, x, e), toks = parse_binding toks in
+       aux toks ((Decl.Let (attrs, x, e)) :: res)
+
+    | TExport :: TIde x :: toks ->
+       aux toks ((Decl.Export x) :: res)
+    | TExport :: t :: _ -> raise_expected_str "identifier" t
+    | TExport :: [] -> raise_expected_str_eof "identifier"
+
+    | TEnd :: toks ->
+       (List.rev res, toks)
+
+    | t :: _ -> raise_expected_str "'let', 'export' or 'end'" t
+    | [] -> raise_expected_str_eof "'let', 'export' or 'end'"
+  in
+  let decls, toks = aux toks [] in
+  (Exp.Module decls, toks)
 
 and parse_binding toks =
   let attrs, toks = parse_attrs toks in
@@ -180,8 +240,8 @@ and parse_binding toks =
      let toks = expect TEquals toks in
      let e, toks = parse_expr toks in
      ((attrs, x, make_lam args e), toks)
-  | t :: _ -> raise (ParseError ("expected identifier, found " ^ tts t))
-  | _ -> raise (ParseError "expected identifier, found EOF")
+  | t :: _ -> raise_expected_str "identifier" t
+  | _ -> raise_expected_str_eof "identifier"
 
 and parse_let_and toks =
   let rec aux toks res =
@@ -190,8 +250,8 @@ and parse_let_and toks =
     match toks with
     | TIn :: toks -> List.rev res, toks
     | TAnd :: toks -> aux toks res
-    | t :: _ -> raise (ParseError ("expected 'in' or 'and', found " ^ tts t))
-    | _ -> raise (ParseError "expected 'in' or 'and', found EOF")
+    | t :: _ -> raise_expected_str "'in' or 'and'" t
+    | _ -> raise_expected_str_eof "'in' or 'and'"
   in
   aux toks []
 
@@ -213,8 +273,8 @@ and parse_handler toks =
        let ret = Option.value ret ~default in
        (Handler.{ops; ret}, toks)
 
-    | ([], t :: _) -> raise (ParseError ("expected '}', found " ^ tts t))
-    | ([], []) -> raise (ParseError "expected '}', found EOF")
+    | ([], t :: _) -> raise_expected_str "'}'" t
+    | ([], []) -> raise_expected_str_eof "'}'"
   in
 
   let toks = expect TCurlyOpen toks in
@@ -250,4 +310,4 @@ let parse toks =
   let e, toks = parse_expr toks in
   match toks with
   | [] -> e
-  | t :: _ -> raise (ParseError ("expected EOF, found " ^ tts t))
+  | t :: _ -> raise_expected_str "EOF" t
