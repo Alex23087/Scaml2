@@ -30,8 +30,12 @@ type t = Var of Ide.t
 
        | Assert of t
        | HasAttr of Let_attr.t * t
+       | Endorse of t
+       | Declassify of t
 
        | Print of t
+
+       | Die
 [@@deriving sexp]
 
 (*

@@ -31,19 +31,19 @@ let rec mod_let_desugaring (decls: Exp.t Decl.t Base.list): Exp.t =
     )
 
 
-let rec apply_intf (v, ell: 'a Val.t) (tau: Type.t): 'a Val.t =
+let rec apply_intf (v, ell: 'a Val.t) (tau: Typ.t): 'a Val.t =
   let ell' = Lbl.join ell (Lbl.Public, Lbl.Tainted) in
   match (v, tau) with
-    | (_, Type.Any)
-    | (Val.Int _, Type.Int)
-    | (Val.String _, Type.String)
-    | (Val.Bool _, Type.Bool) -> (
+    | (_, Typ.Any)
+    | (Val.Int _, Typ.Int)
+    | (Val.String _, Typ.String)
+    | (Val.Bool _, Typ.Bool) -> (
       (v, ell')
     )
-    | (Val.Fun _, Type.Fun _) -> (Val.ValType (v, tau), ell')
-    | (Val.Tuple vts, Type.Tuple tts) -> (
+    | (Val.Fun _, Typ.Fun _) -> (Val.ValType (v, tau), ell')
+    | (Val.Tuple vts, Typ.Tuple tts) -> (
       let mapped = List.combine vts tts |> List.map (uncurry apply_intf) in
       (Val.Tuple(mapped), ell')
     )
-    | (Val.NoSecret v', _) -> (Val.NoSecret (apply_intf (v', ell) tau)) (* TODO: NoSecret takes a bare value, this needs to be fixed *)
+    (* | (Val.NoSecret v', _) -> (Val.NoSecret (apply_intf (v', ell) tau)) (\* TODO: NoSecret takes a bare value, this needs to be fixed *\) *)
     | _ -> raise (Invalid_argument "Cannot apply interface to value")

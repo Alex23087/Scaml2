@@ -28,11 +28,11 @@ type token = TIde of Ide.t
            | TIf | TThen | TElse | TEnd
            | TWith | THandle | TDo
            | TModule | TTrusted | TPlugin | TExport
-           | TAssert | THasAttr
-           | TPrint
+           | TAssert | THasAttr | TDeclassify | TEndorse
+           | TPrint | TDie
 
            (* types *)
-           | TTint | TTstring | TTbool | TTarrow
+           | TTint | TTstring | TTbool | TTarrow | TAny
 [@@deriving equal, sexp]
 
 type lexer_error = string * int * int
@@ -49,6 +49,7 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                  ("string", Tok TTstring);
                  ("bool", Tok TTbool);
                  ("->", Tok TTarrow);
+                 ("any", Tok TAny);
 
                  ("(", Tok TParOpen  );  (")", Tok TParClosed);
                  ("[", Tok TSquareOpen); ("]", Tok TSquareClosed);
@@ -96,8 +97,11 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
 
                  ("assert", Tok TAssert );
                  ("has_attr", Tok THasAttr);
+                 ("declassify", Tok TAssert );
+                 ("endorse", Tok THasAttr);
 
                  ("print", Tok TPrint);
+                 ("die", Tok TDie);
 
                  ("public", Tok (TLetAttr Public));
                  ("secret", Tok (TLetAttr Secret));
@@ -106,13 +110,15 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
              @ (List.map ~f:(fun (s, a) -> (Str.regexp s, a))
                   [(" +", Ignore);
 
+                   ("#.*", Ignore);
+
                    ("[0-9]+",
                     Fun (fun s -> TInt (Int.of_string s)));
 
-                   ({|"\(\\.|[^\"]\)*"|},
+                   ({|"\(\\.\|[^"]\)*"|},
                     Fun (fun s -> TString (String.(drop_suffix (drop_prefix s 1) 1))));
 
-                   ("[a-zA-Z_][a-zA-Z0-9_]*",
+                   ("[a-zA-Z_][a-zA-Z0-9_]*'*",
                     Fun (fun s -> TIde (Ide.of_string s)))])
 
 let rec tokenize_line l lnum i toks =
@@ -145,3 +151,7 @@ let error_to_string (msg, l, c) =
   Printf.sprintf "Lexer error at line %d, column %d: %s" l c msg
 
 let token_to_string tok = sexp_of_token tok |> Sexp.to_string_hum
+
+let toks_to_string toks =
+  List.map toks ~f:token_to_string
+  |> String.concat ~sep:" "

@@ -25,17 +25,18 @@ type token = TIde of Ide.t
            | TIf | TThen | TElse | TEnd
            | TWith | THandle | TDo
            | TModule | TTrusted | TPlugin | TExport
-           | TAssert | THasAttr
-           | TPrint
+           | TAssert | THasAttr | TDeclassify | TEndorse
+           | TPrint | TDie
 
            (* types *)
-           | TTint | TTstring | TTbool | TTarrow
+           | TTint | TTstring | TTbool | TTarrow | TAny
 [@@deriving equal, sexp]
 
 type lexer_error = string * int * int
 
 val equal_token : token -> token -> bool
 val token_to_string : token -> string
+val toks_to_string : token list -> string
 
 val tokenize : Stdio.In_channel.t -> (token list, lexer_error) Result.t
 

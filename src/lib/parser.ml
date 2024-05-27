@@ -1,4 +1,5 @@
 open Base
+open Stdio
 
 open Lexer
 
@@ -39,20 +40,17 @@ let raise_expected_tok_eof e =
   raise (ParseError ("expected " ^ token_to_string e ^ ", found EOF"))
 
 let ops =
-  Bop.(Uop.([([(TMinus, Minus);
-               (TNot, Not)],
+  Bop.(Uop.([([],
               [],
-              []);
+              [(TSemicolon, Seq)]);
 
              ([],
-              [(TStar, Multiplication);
-               (TSlash, Division)],
-              []);
+              [],
+              [(TOr, Or)]);
 
              ([],
-              [(TPlus, Addition);
-               (TMinus, Subtraction)],
-              []);
+              [],
+              [(TLogAnd, And)]);
 
              ([],
               [(TEquals, Equals);
@@ -63,16 +61,19 @@ let ops =
               []);
 
              ([],
-              [],
-              [(TLogAnd, And)]);
+              [(TPlus, Addition);
+               (TMinus, Subtraction)],
+              []);
 
              ([],
-              [],
-              [(TOr, Or)]);
+              [(TStar, Multiplication);
+               (TSlash, Division)],
+              []);
 
-             ([],
+             ([(TMinus, Minus);
+               (TNot, Not)],
               [],
-              [(TSemicolon, Seq)]);
+              []);
   ]))
 
 let expect t toks =
@@ -123,11 +124,12 @@ let rec parse_ops toks =
 
     let rec parse_bopls ops' e1 toks bopls =
       List.find_map bopls ~f:(fun (t, op) ->
-            match toks with
-            | t' :: toks when equal_token t t' ->
-               let (e2, toks) = aux ops' toks in
-               parse_bopls ops (Exp.Bop (op, e1, e2)) toks bopls
-            | _ -> None)
+        match toks with
+        | t' :: toks when equal_token t t' ->
+           let (e2, toks) = aux ops' toks in
+           Some (parse_bopls ops (Exp.Bop (op, e1, e2)) toks bopls)
+        | _ -> None)
+      |> Option.value ~default:(e1, toks)
     in
 
     match ops with
@@ -135,27 +137,39 @@ let rec parse_ops toks =
        let< () = List.find_map uops ~f:parse_uop in
        let (e1, toks) = aux ops' toks in
        let< () = List.find_map boprs ~f:(parse_bopr e1 toks) in
-       let< () = parse_bopls ops' e1 toks bopls in
-       raise (ParseError "TODO")
+       parse_bopls ops' e1 toks bopls
 
     | [] -> parse_app_like toks
 
   in aux ops toks
 
 and parse_app_like = function
-  | TPrint :: toks -> let e, toks = parse_field_access toks in (Exp.Print e, toks)
-  | TFix :: toks -> let e, toks = parse_field_access toks in (Exp.Fix e, toks)
-  | TFixs :: toks -> let e, toks = parse_field_access toks in (Exp.Fixs e, toks)
-  | TAssert :: toks -> let e, toks = parse_field_access toks in (Exp.Assert e, toks)
-  | THasAttr :: TLetAttr a :: toks -> (* TODO precedenza maggiore per fare assert has_attr senza parentesi? *)
+  | TPrint :: toks ->
+     let e, toks = parse_field_access toks in (Exp.Print e, toks)
+  | TFix :: toks ->
+     let e, toks = parse_field_access toks in (Exp.Fix e, toks)
+  | TFixs :: toks ->
+     let e, toks = parse_field_access toks in (Exp.Fixs e, toks)
+  | TAssert :: toks ->
+     let e, toks = parse_field_access toks in (Exp.Assert e, toks)
+  | THasAttr :: TLetAttr a :: toks ->
      let e, toks = parse_field_access toks in (Exp.HasAttr (a, e), toks)
+  | TDeclassify :: toks ->
+     let e, toks = parse_field_access toks in (Exp.Declassify e, toks)
+  | TEndorse :: toks ->
+     let e, toks = parse_field_access toks in (Exp.Endorse e, toks)
 
-  | toks ->
-     let e1, toks = parse_field_access toks in
-     try
-       let e2, toks = parse_field_access toks in
-       (Exp.App (e1, e2), toks)
-     with ParseError _ -> (e1, toks)
+  | toks -> parse_apps toks
+
+and parse_apps toks =
+  let rec aux e1 toks =
+    try
+      let e2, toks = parse_field_access toks in
+      aux (Exp.App (e1, e2)) toks
+    with ParseError _ -> (e1, toks)
+  in
+  let e1, toks = parse_field_access toks in
+  aux e1 toks
 
 and parse_field_access toks =
   let e1, toks = parse_atom toks in
@@ -189,7 +203,16 @@ and parse_atom = function
       | t :: _ -> raise_expected_str "'else' or 'end'" t
       | _ -> raise_expected_str_eof "'else' or 'end'")
 
-  | TModule :: toks -> parse_module toks
+  | TModule :: toks ->
+     let decls, toks = parse_module toks in
+     (Exp.Module decls, toks)
+
+  | TTrusted :: toks ->
+     let toks = expect TModule toks in
+     let decls, toks = parse_module toks in
+     (Exp.TruMod decls, toks)
+
+  | TPlugin :: toks -> parse_plugin toks
 
   | TInt x :: toks -> (Exp.Lit (Val.int x), toks)
   | TString x :: toks -> (Exp.Lit (Val.string x), toks)
@@ -203,7 +226,7 @@ and parse_tuple toks =
   let rec aux toks res =
     let e, toks = parse_expr toks in
     match toks with
-    | TColon :: toks -> aux toks (e :: res)
+    | TComma :: toks -> aux toks (e :: res)
     | TSquareClosed :: toks -> (List.rev (e :: res), toks)
     | t :: _ -> raise_expected_str "',' or ']'" t
     | [] -> raise_expected_str_eof "',' or ']'"
@@ -229,8 +252,26 @@ and parse_module toks =
     | t :: _ -> raise_expected_str "'let', 'export' or 'end'" t
     | [] -> raise_expected_str_eof "'let', 'export' or 'end'"
   in
-  let decls, toks = aux toks [] in
-  (Exp.Module decls, toks)
+  aux toks []
+
+and parse_plugin _toks =
+  failwith "unimplemented"
+  (* let parse_type toks res = *)
+  (*   match toks with *)
+  (*   | *)
+
+  (* let rec parse_intfs toks res = *)
+  (*   match toks  *)
+  (* in *)
+  (* match toks with *)
+  (* | TString fname :: toks -> *)
+  (*    let intfs, toks = parse_intfs toks [] in *)
+  (*    (Exp.Plugin (fname, intfs), toks) *)
+
+  (* | t :: _ -> raise_expected_str "file name after 'plugin'" t *)
+  (* | _ -> raise_expected_str_eof "file name after 'plugin'" *)
+
+
 
 and parse_binding toks =
   let attrs, toks = parse_attrs toks in
@@ -306,8 +347,12 @@ and parse_expr = function
 
   | toks -> parse_ops toks
 
-let parse toks =
-  let e, toks = parse_expr toks in
-  match toks with
-  | [] -> e
-  | t :: _ -> raise_expected_str "EOF" t
+and parse toks =
+  match parse_module (toks @ [TEnd]) with
+  | decls, [] -> Exp.Module decls
+  | _, t :: _ -> raise_expected_str "EOF" t
+
+and parse_file fname =
+  match In_channel.with_file fname ~f:tokenize with
+  | Ok toks -> parse toks
+  | Error err -> raise (ParseError ("lexer error: " ^ Lexer.error_to_string err))
