@@ -1,3 +1,3 @@
-(* open Base *)
+open Base
 
-type t = Int | String | Bool | Fun of t * t [@@deriving sexp]
+type t = Any | Int | String | Bool | Fun of t * t | Tuple of t list [@@deriving sexp]

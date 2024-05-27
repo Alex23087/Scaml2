@@ -514,7 +514,7 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
       ], \ell' \rangle
     \end{aligned}
     & \tau = \stuple{\tau_1\scomma \dots \scomma \tau_n} \wedge v = [\valpair{v}_1, \dots , \valpair{v}_n] \\
-    \vnosecret {\text{apply-intf}(\langle v', \ell \rangle, \tau)} & v = \vnosecret {v'}\\
+    {\color{red}\vnosecret {\text{apply-intf}(\langle v', \ell \rangle, \tau)}} & v = \vnosecret {v'}\\
     \text{undefined} & \text{otherwise}
   \end{dcases} \\
 &\quad\text{where } \ell' \triangleq \ell \sqcup \langle \mathrm{public}, \mathrm{tainted} \rangle
@@ -533,7 +533,7 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
     \end{aligned}
     & v = [\valpair{v}_1, \dots , \valpair{v}_n] \\
     \langle \text{apply-nosecret}(v') : \tau, \ell \rangle & v = v' : \tau \\
-    \langle v, \ell \rangle & v = \vnosecret v'
+    {\color{red}\langle v, \ell \rangle} & v = \vnosecret v'
   \end{dcases}
   \\[2ex]
   &\text{apply-nosecret}(\langle v, \langle \mathrm{secret}, \ell_{I} \rangle\rangle) = \mathrm{undefined} 
