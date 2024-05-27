@@ -28,7 +28,6 @@ type t = Var of Ide.t
        | TruMod of t Decl.t list
        | Plugin of string * Intf.t list
 
-       | Assert of t
        | HasAttr of Let_attr.t * t
        | Endorse of t
        | Declassify of t

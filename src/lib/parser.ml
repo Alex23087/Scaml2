@@ -150,14 +150,14 @@ and parse_app_like = function
      let e, toks = parse_field_access toks in (Exp.Fix e, toks)
   | TFixs :: toks ->
      let e, toks = parse_field_access toks in (Exp.Fixs e, toks)
-  | TAssert :: toks ->
-     let e, toks = parse_field_access toks in (Exp.Assert e, toks)
   | THasAttr :: TLetAttr a :: toks ->
      let e, toks = parse_field_access toks in (Exp.HasAttr (a, e), toks)
   | TDeclassify :: toks ->
      let e, toks = parse_field_access toks in (Exp.Declassify e, toks)
   | TEndorse :: toks ->
      let e, toks = parse_field_access toks in (Exp.Endorse e, toks)
+
+  | TDo :: toks -> parse_do toks
 
   | toks -> parse_apps toks
 
@@ -170,6 +170,19 @@ and parse_apps toks =
   in
   let e1, toks = parse_field_access toks in
   aux e1 toks
+
+and parse_do toks =
+  match toks with
+  | TIde op :: toks ->
+     let rec aux args toks =
+       try
+         let e, toks = parse_field_access toks in
+         aux (e :: args) toks
+       with ParseError _ -> (Exp.Do (op, List.rev args), toks)
+     in
+     aux [] toks
+  | t :: _ -> raise_expected_str "file operation name after 'do'" t
+  | _ -> raise_expected_str_eof "file operation name after 'do'"
 
 and parse_field_access toks =
   let e1, toks = parse_atom toks in
@@ -214,6 +227,8 @@ and parse_atom = function
 
   | TPlugin :: toks -> parse_plugin toks
 
+  | TDie :: toks -> (Exp.Die, toks)
+
   | TInt x :: toks -> (Exp.Lit (Val.int x), toks)
   | TString x :: toks -> (Exp.Lit (Val.string x), toks)
   | TBool x :: toks -> (Exp.Lit (Val.bool x), toks)
@@ -237,6 +252,10 @@ and parse_tuple toks =
 and parse_module toks =
   let rec aux toks res =
     match toks with
+    | TLet :: TRec :: toks ->
+       let bindings, toks = parse_let_and toks in
+       aux toks (Decl.LetRec bindings :: res)
+
     | TLet :: toks ->
        let (attrs, x, e), toks = parse_binding toks in
        aux toks ((Decl.Let (attrs, x, e)) :: res)
@@ -289,10 +308,8 @@ and parse_let_and toks =
     let b, toks = parse_binding toks in
     let res = b :: res in
     match toks with
-    | TIn :: toks -> List.rev res, toks
     | TAnd :: toks -> aux toks res
-    | t :: _ -> raise_expected_str "'in' or 'and'" t
-    | _ -> raise_expected_str_eof "'in' or 'and'"
+    | _ -> List.rev res, toks
   in
   aux toks []
 
@@ -324,6 +341,7 @@ and parse_handler toks =
 and parse_expr = function
   | TLet :: TRec :: toks ->
      let bindings, toks = parse_let_and toks in
+     let toks = expect TIn toks in
      let body, toks = parse_expr toks in
      (Exp.LetRec (bindings, body), toks)
 

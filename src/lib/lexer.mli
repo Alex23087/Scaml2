@@ -25,7 +25,7 @@ type token = TIde of Ide.t
            | TIf | TThen | TElse | TEnd
            | TWith | THandle | TDo
            | TModule | TTrusted | TPlugin | TExport
-           | TAssert | THasAttr | TDeclassify | TEndorse
+           | THasAttr | TDeclassify | TEndorse
            | TPrint | TDie
 
            (* types *)
