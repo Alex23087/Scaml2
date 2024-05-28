@@ -1,3 +1,5 @@
+exception SecurityException
+
 type conf = Secret | Public [@@deriving sexp]
 type intg = Tainted | Untainted [@@deriving sexp]
 

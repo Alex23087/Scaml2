@@ -1,4 +1,11 @@
 (executable
  (public_name scaml2)
  (name main)
+ (modules main)
+ (libraries scaml2))
+
+(executable
+ (public_name scaml2_interpreter)
+ (name main_interpreter)
+ (modules main_interpreter)
  (libraries scaml2))

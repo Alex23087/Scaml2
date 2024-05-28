@@ -22,9 +22,10 @@ let bool x = (Bool x, Lbl.bot)
 let get_val ((v, _): 'a t): 'a naked_val = v
 let get_lbl ((_, l): 'a t): Lbl.t = l
 
-(* let to_string = function *)
-(*   | Int x -> Int.to_string x *)
-(*   | String x -> x *)
-(*   | Bool x -> Bool.to_string x *)
-(*   | Fun _ -> "<function>" *)
-(*   | Mod _ -> "<module>" *)
+let to_string = function
+  | Int x -> Int.to_string x
+  | String x -> x
+  | Bool x -> Bool.to_string x
+  | Fun _ -> "<function>"
+  | Mod _ -> "<module>"
+  | _ -> failwith "to_string not implemented"
