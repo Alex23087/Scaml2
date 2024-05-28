@@ -1,9 +1,11 @@
 open Base
 
 exception InvalidBop of string
+exception InvalidUop of string
 
 
 let raise_invalid_bop bop v1 v2 = raise (InvalidBop ("Cannot apply " ^ (Sexp.to_string_hum (Bop.sexp_of_t bop)) ^ " to arguments " ^ (Val.to_string v1) ^ " and " ^ (Val.to_string v2)))
+let raise_invalid_uop uop v = raise (InvalidUop ("Cannot apply " ^ (Sexp.to_string_hum (Uop.sexp_of_t uop)) ^ " to argument " ^ (Val.to_string v)))
 
 
 let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t =
@@ -72,6 +74,13 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 					((Val.String (s1 ^ s2)), final_label)
 				)
 				| _ -> raise_invalid_bop bop v1 v2
+		)
+		| Uop (uop, e) -> (
+			let (v, l) = eval_exp env pc e in
+			match (uop, v) with
+				| (Not, Bool b) -> (Bool (not b), Lbl.join pc l)
+				| (Minus, Int i) -> (Int (-i), Lbl.join pc l)
+				| _ -> raise_invalid_uop uop v
 		)
 		| App (funexp, argexp) -> (
 			let (closure, lf) = eval_exp env pc funexp in
