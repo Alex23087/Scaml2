@@ -7,6 +7,8 @@ type 'a naked_val = Int of int
                   | Tuple of 'a t list
                   | Defer of 'a t Env.t * 'a
                   | Mod of 'a t Env.t
+                  | TMod of 'a t Env.t
+                  | Plugin of 'a t Env.t
                   | ValType of 'a naked_val * Typ.t
                   | NoSecret of 'a naked_val
 [@@deriving sexp]

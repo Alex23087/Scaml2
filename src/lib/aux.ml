@@ -27,6 +27,7 @@ let rec mod_let_desugaring (decls: Exp.t Decl.t Base.list): Exp.t =
           Exp.Let (attrs, ide, exp, mod_let_desugaring ds)
         )
         (* TODO: | Decl.LetRec *)
+        | Export _ -> mod_let_desugaring ds
         | _ -> raise (Invalid_argument "mod_let_desugaring can only accept a list of let declarations")
     )
 

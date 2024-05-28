@@ -2,7 +2,10 @@ open Base
 
 exception InvalidBop of string
 
+
 let raise_invalid_bop bop v1 v2 = raise (InvalidBop ("Cannot apply " ^ (Sexp.to_string_hum (Bop.sexp_of_t bop)) ^ " to arguments " ^ (Val.to_string v1) ^ " and " ^ (Val.to_string v2)))
+
+
 let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t =
 	match exp with
 		| Var ide -> (
@@ -15,6 +18,20 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 				| _ -> (v, Lbl.join pc ell)
 		)
 		| Lit (v, _) -> (v, pc)
+		| Field (modexpr, fieldide) -> (
+			let (modval, l) = eval_exp env pc modexpr in
+			match modval with
+				| Mod modenv
+				| TMod modenv
+				| Plugin modenv -> (
+					match Env.lookup modenv fieldide with
+						| Some (v, l') -> (
+							(v, Lbl.join (Lbl.join pc l) l')
+						)
+						| None -> failwith ("Field " ^ (Ide.to_string fieldide) ^ " not present in " ^ (Val.to_string modval))
+				)
+				| _ -> failwith ("Trying to access field of non-module value: " ^ (Val.to_string modval))
+		)
 		| Bop (bop, e1, e2) -> (
 			let (v1, l1) = eval_exp env pc e1 in
 			let (v2, l2) = eval_exp env pc e2 in
@@ -100,10 +117,10 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 		)
 		| Module decls -> (
 			let modlet = Aux.mod_let_desugaring decls in
-			let modclosure = eval_exp env pc modlet in (* TODO: restrict environment based on export list *)
+			let modclosure = eval_exp env pc modlet in
 			match modclosure with
 				| (Val.Fun (newenv, _, _), _l) -> (
-					(Val.Mod newenv, pc)
+					(Val.Mod (Env.restrict decls newenv), pc)
 				)
 				| _ -> failwith "Impossible! mod_let_desugaring necessarily returns a lambda"
 		)
