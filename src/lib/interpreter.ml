@@ -56,8 +56,29 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 				)
 				| _ -> raise_invalid_bop bop v1 v2
 		)
+		| App (funexp, argexp) -> (
+			let (closure, lf) = eval_exp env pc funexp in
+			let param = eval_exp env pc argexp in
+			match closure with
+				| Fun (clenv, ide, body) -> (
+					let newenv = Env.bind clenv ide param in
+					let (u, lu) = eval_exp newenv (Lbl.join pc lf) body in
+					(u, Lbl.join (Lbl.join pc lf) lu)
+				)
+				| _ -> failwith ("Applying non function value: " ^ (Val.to_string closure))
+		)
 		| Lam (ide, body) -> (
 			((Val.Fun (env, ide, body)), pc)
+		)
+		| Fix expr -> (
+			let (closure, l) = eval_exp env pc expr in
+			match closure with
+				| Fun (clenv, ide, body) -> (
+					let newenv = Env.bind clenv ide ((Val.Defer (clenv, Exp.Fix(Exp.Lam(ide, body)))), l) in
+					let (v, l') = eval_exp newenv (Lbl.join pc l) body in
+					(v, Lbl.join (Lbl.join pc l) l')
+				)
+				| _ -> failwith ("Applying fixpoint to non function value: " ^ (Val.to_string closure))
 		)
 		| Let (attrs, ide, expr, body) -> (
 			let (v1, l1) = eval_exp env pc expr in
