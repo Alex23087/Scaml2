@@ -148,6 +148,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 						|> Stdio.print_string
 			); res
 		)
+		| Die -> failwith ("Died")
 		| _ -> failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
 let eval = eval_exp Env.empty_env Lbl.bot
