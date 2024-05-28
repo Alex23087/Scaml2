@@ -5,7 +5,7 @@ type 'a naked_val = Int of int
                   | Bool of bool
                   | Fun of 'a t Env.t * Ide.t * 'a
                   | Tuple of 'a t list
-                  | Defer of 'a
+                  | Defer of 'a t Env.t * 'a
                   | Mod of 'a t Env.t
                   | ValType of 'a naked_val * Typ.t
                   | NoSecret of 'a naked_val
