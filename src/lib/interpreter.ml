@@ -15,7 +15,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 			match v with
 				| Val.Defer (delta', expr) -> (
 					let (v, ell2) = eval_exp delta' pc expr in
-					(v, Lbl.join (Lbl.join pc ell) ell2)
+					(v, Lbl.joins [pc; ell; ell2])
 				)
 				| _ -> (v, Lbl.join pc ell)
 		)
@@ -28,7 +28,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 				| Plugin modenv -> (
 					match Env.lookup modenv fieldide with
 						| Some (v, l') -> (
-							(v, Lbl.join (Lbl.join pc l) l')
+							(v, Lbl.joins [pc; l; l'])
 						)
 						| None -> failwith ("Field " ^ (Ide.to_string fieldide) ^ " not present in " ^ (Val.to_string modval))
 				)
@@ -37,7 +37,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 		| Bop (bop, e1, e2) -> (
 			let (v1, l1) = eval_exp env pc e1 in
 			let (v2, l2) = eval_exp env pc e2 in
-			let final_label = Lbl.join (Lbl.join pc l1) l2 in
+			let final_label = Lbl.joins [pc; l1; l2] in
 			match (bop, v1, v2) with
 				| (Seq, _, v2) -> (v2, final_label) (* Maybe this should be (v2,l2)?*)
 				| (_, Int i1, Int i2) -> (
@@ -89,7 +89,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 				| Fun (clenv, ide, body) -> (
 					let newenv = Env.bind clenv ide param in
 					let (u, lu) = eval_exp newenv (Lbl.join pc lf) body in
-					(u, Lbl.join (Lbl.join pc lf) lu)
+					(u, Lbl.joins [pc; lf; lu])
 				)
 				| _ -> failwith ("Applying non function value: " ^ (Val.to_string closure))
 		)
@@ -102,7 +102,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 				| Fun (clenv, ide, body) -> (
 					let newenv = Env.bind clenv ide ((Val.Defer (clenv, Exp.Fix(Exp.Lam(ide, body)))), l) in
 					let (v, l') = eval_exp newenv (Lbl.join pc l) body in
-					(v, Lbl.join (Lbl.join pc l) l')
+					(v, Lbl.joins [pc; l; l'])
 				)
 				| _ -> failwith ("Applying fixpoint to non function value: " ^ (Val.to_string closure))
 		)
@@ -141,7 +141,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 				| Val.Bool false -> belse
 				| _ -> failwith ("Nonboolean guard: " ^ (Val.to_string bguard))
 			) in
-			(resv, Lbl.join (Lbl.join pc lc) resl)
+			(resv, Lbl.joins [pc; lc; resl])
 		)
 		| Module decls -> (
 			let modlet = Aux.mod_let_desugaring decls in
