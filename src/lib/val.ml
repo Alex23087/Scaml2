@@ -24,10 +24,11 @@ let bool x = (Bool x, Lbl.bot)
 let get_val ((v, _): 'a t): 'a naked_val = v
 let get_lbl ((_, l): 'a t): Lbl.t = l
 
-let to_string = function
+let rec to_string = function
   | Int x -> Int.to_string x
   | String x -> x
   | Bool x -> Bool.to_string x
   | Fun _ -> "<function>"
   | Mod _ -> "<module>"
+  | Tuple vs -> "[" ^ (String.concat ~sep:", " (List.map ~f:to_string (List.map ~f:fst vs))) ^ "]"
   | _ -> failwith "to_string not implemented"

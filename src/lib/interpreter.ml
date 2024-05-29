@@ -171,7 +171,28 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
       let vals = List.map exprs ~f:(fun e -> eval_exp env pc e) in
       let lbl = Lbl.joins (pc :: (List.map vals ~f:(fun (_, l) -> l))) in
       (Val.Tuple vals, lbl)
+    | TupleField (tuple, index) -> (
+      let (tup, lt) = eval_exp env pc tuple in
+      let (idx, li) = eval_exp env pc index in
+        match tup with
+          | Tuple vals ->
+            (match idx with
+              | Val.Int i ->
+                let (v, lbl) = List.nth_exn vals i in
+                (v, Lbl.joins [pc; lt; li; lbl])
+              | _ -> failwith ("Trying to access field of tuple with non-integer index: " ^ (Val.to_string idx))
+            )
+          | _ -> failwith ("Trying to access field of non-tuple value: " ^ (Val.to_string tup))
+      )
 		| Die -> failwith ("Died")
 		| _ -> failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
 let eval = eval_exp Env.empty_env Lbl.bot
+
+(* match idx with
+            | Val.Int i -> failwith "ciao"
+            | _ -> failwith ("Trying to access field of tuple with non-integer index: " ^ (Val.to_string idx)) *)
+
+            (* match tup with
+          | Val.Tuple vals -> failwith "ciao"
+          | _ -> failwith ("Trying to access field of non-tuple value: " ^ (Val.to_string tup)) *)
