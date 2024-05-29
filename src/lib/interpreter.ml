@@ -188,11 +188,3 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 		| _ -> failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
 let eval = eval_exp Env.empty_env Lbl.bot
-
-(* match idx with
-            | Val.Int i -> failwith "ciao"
-            | _ -> failwith ("Trying to access field of tuple with non-integer index: " ^ (Val.to_string idx)) *)
-
-            (* match tup with
-          | Val.Tuple vals -> failwith "ciao"
-          | _ -> failwith ("Trying to access field of non-tuple value: " ^ (Val.to_string tup)) *)
