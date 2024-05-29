@@ -106,6 +106,38 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 				)
 				| _ -> failwith ("Applying fixpoint to non function value: " ^ (Val.to_string closure))
 		)
+    | Fixs expr -> (
+			let (tuplexpr, l) = eval_exp env pc expr in
+			match tuplexpr with
+				| Tuple closures ->
+            let tied_closures: Exp.t Val.t list = List.map closures ~f:(fun (closure, l') ->
+              match closure with
+                | Fun (clenv, ide, body) -> (
+                  let newenv = Env.bind clenv ide ((Val.Defer (clenv, Exp.Fixs(expr))), l') in
+                  let (v, l'') = eval_exp newenv (Lbl.join pc l') body in
+                  (v, Lbl.join (Lbl.join pc l') l'')
+                )
+                | _ -> failwith ("Applying fixpoint to non function value: " ^ (Val.to_string closure))
+
+            ) in
+            let partial_joins = Lbl.joins (List.map tied_closures ~f:(fun (_, l) -> l)) in
+            (Val.Tuple tied_closures, Lbl.join l partial_joins)
+
+				| _ -> failwith ("Applying fixpoint to non tuple value: " ^ (Val.to_string tuplexpr))
+		)
+    (* | Fixes (exps) -> (
+      let rec closures = lazy (List.map (fun exp -> match (eval_exp exp env effEnv) with
+          | Closure (is, body, env) -> Closure (
+            drop (List.length exps) is,
+            body,
+            fun y -> let io = List.find_index (fun i -> i = y) (take (List.length exps) is) in 
+              match io with
+                | Some i -> (List.nth (Lazy.force closures) i)
+                | None -> env y
+            )
+          | _ -> failwith "Applying fixpoint to non-function"
+      ) exps) in Lista (Lazy.force closures)
+    ) *)
 		| Let (attrs, ide, expr, body) -> (
 			let (v1, l1) = eval_exp env pc expr in
 			(if Lbl.(<=) l1 (Aux.attr_list_to_lbl attrs ~default:Lbl.top)

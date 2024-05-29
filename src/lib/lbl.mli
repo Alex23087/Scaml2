@@ -22,5 +22,7 @@ val (<=) : t -> t -> bool
 val join  : t -> t -> t
 val merge : t -> t -> t
 
+val joins : t list -> t
+
 val conf_proj : t -> conf
 val intg_proj : t -> intg

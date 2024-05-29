@@ -38,5 +38,7 @@ let (<=) = leq
 let join (c1, i1) (c2, i2) = (conf_join c1 c2, intg_join i1 i2)
 let merge (c1, i1) (c2, i2) = (conf_merge c1 c2, intg_merge i1 i2)
 
+let joins = List.fold_left join bot
+
 let conf_proj (c, _) = c
 let intg_proj (_, i) = i
