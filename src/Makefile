@@ -23,7 +23,7 @@ test-interpreter-normal: build
 		RES=$$(_build/default/bin/main_interpreter.exe $$f) ; \
 		if [ $$? -eq 0 ]; then \
 			if [ -e "$$EXPECTED" ]; then \
-				echo $$RES | diff $$EXPECTED - ;\
+				echo "$$RES" | diff "$$EXPECTED" - ;\
 			else \
 				echo "$$RES" ;\
 				echo "Succeeded";\
