@@ -41,6 +41,11 @@ type action = Tok of token
             | Fun of (string -> token)
             | Ignore
 
+let unescape = String.Escaping.unescape_gen_exn
+                 ~escape_char:'\\'
+                 ~escapeworthy_map:[('\n', 'n'); ('\t', 't')]
+               |> Staged.unstage
+
 let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                 [("true", Tok (TBool true));
                  ("false", Tok (TBool false));
@@ -115,7 +120,10 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                     Fun (fun s -> TInt (Int.of_string s)));
 
                    ({|"\(\\.\|[^"]\)*"|},
-                    Fun (fun s -> TString (String.(drop_suffix (drop_prefix s 1) 1))));
+                    Fun (fun s ->
+                        let s = String.(drop_suffix (drop_prefix s 1) 1)
+                                |> unescape
+                        in TString s));
 
                    ("[a-zA-Z_][a-zA-Z0-9_]*'*",
                     Fun (fun s -> TIde (Ide.of_string s)))])
