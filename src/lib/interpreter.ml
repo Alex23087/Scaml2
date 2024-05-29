@@ -149,11 +149,11 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
   | Let (attrs, ide, expr, body) ->
       let v1, l1 = eval_exp env pc expr in
-      if Lbl.( <= ) l1 (Aux.attr_list_to_lbl attrs ~default:Lbl.top) then ()
+      if Lbl.( <= ) l1 (Let_attr.list_to_lbl attrs ~default:Lbl.top) then ()
       else raise Lbl.SecurityException;
       let new_env =
         Env.bind env ide
-          (v1, Lbl.join l1 (Aux.attr_list_to_lbl attrs ~default:Lbl.bot))
+          (v1, Lbl.join l1 (Let_attr.list_to_lbl attrs ~default:Lbl.bot))
       in
       let v, l = eval_exp new_env pc body in
       (v, Lbl.join pc l)
@@ -214,6 +214,14 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
   | HasAttr (attr, e) ->
       let _, l = eval_exp env pc e in
       (Aux.eq_attr_lbl attr l |> Val.Bool, Lbl.join pc l)
+
+  | Plugin (fname, intfs) ->
+      let e = Parser.parse_file fname in
+      (match eval_exp Env.empty_env Lbl.bot e with
+       | Val.Mod env, l ->
+           (Val.Plugin (Aux.restrict_to_intfs env intfs),
+            Lbl.join pc l)
+       | _ -> failwith "unreachable (plugin evaluated to non-module)")
 
   | Die -> failwith "Died"
 

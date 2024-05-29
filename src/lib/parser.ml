@@ -411,5 +411,8 @@ and parse toks =
 
 and parse_file fname =
   match In_channel.with_file fname ~f:tokenize with
-  | Ok toks -> parse toks
+  | Ok toks ->
+     (try parse toks
+      with ParseError s -> raise (ParseError (fname ^ ": " ^ s)))
+
   | Error err -> raise (ParseError ("lexer error: " ^ Lexer.error_to_string err))

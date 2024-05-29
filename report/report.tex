@@ -188,9 +188,9 @@ Lbl lattice
 \begin{align*}
   \mathrm{Val} &= \mathrm{BareVal} \times \mathrm{Lbl}
   \\
-  \mathrm{NoSecret} &= \left\{ \vnosecret v \mid v \in \mathrm{BareVal} \right\}
-  \\
   \mathrm{BareVal} &= \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool} \cup \mathrm{Fun} \cup \mathrm{Val}^* \cup \mathrm{Defer} \cup \mathrm{Mod} \cup \mathrm{ValType} \cup \mathrm{NoSecret}
+  \\
+  \mathrm{NoSecret} &= \left\{ \vnosecret v \mid v \in \mathrm{BareVal} \right\}
   \\
   \\
   \mathrm{Int} &= \mathbb N \\
@@ -505,16 +505,20 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
       {}\vee (\tau &=\stint \wedge v \in \mathrm{Int}) \\
       {}\vee (\tau &= \ststring \wedge v \in \mathrm{Str}) \\
       {}\vee (\tau &= \stbool \wedge v \in \mathrm{Bool})
-    \end{aligned} \\
-    \langle v:\tau, \ell' \rangle & \tau = \tau_1 \to \tau_2 \\
+    \end{aligned} \\[1.5ex]
+    \langle v:\tau, \ell' \rangle & \tau = \tau_1 \to \tau_2 \\[1.5ex]
     \begin{aligned}
       \langle [&\text{apply-intf}(\valpair{v}_1,\tau_1),
       \dots, \\
       &\text{apply-intf}(\valpair{v}_n,\tau_n)
       ], \ell' \rangle
     \end{aligned}
-    & \tau = \stuple{\tau_1\scomma \dots \scomma \tau_n} \wedge v = [\valpair{v}_1, \dots , \valpair{v}_n] \\
-    {\color{red}\vnosecret {\text{apply-intf}(\langle v', \ell \rangle, \tau)}} & v = \vnosecret {v'}\\
+    & \tau = \stuple{\tau_1\scomma \dots \scomma \tau_n} \wedge v = [\valpair{v}_1, \dots , \valpair{v}_n] \\[1.5ex]
+    {\vnosecret {\langle v'', \ell' \rangle} } &
+                                  \begin{aligned}
+                                    &v = \vnosecret {v'}\\
+                                    &\wedge \langle v'', \ell' \rangle = {\text{apply-intf}(\langle v', \ell \rangle, \tau)}
+                                  \end{aligned} \\[1.5ex]
     \text{undefined} & \text{otherwise}
   \end{dcases} \\
 &\quad\text{where } \ell' \triangleq \ell \sqcup \langle \mathrm{public}, \mathrm{tainted} \rangle

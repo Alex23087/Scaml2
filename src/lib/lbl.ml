@@ -1,9 +1,9 @@
 exception SecurityException
 
-type conf = Secret | Public [@@deriving sexp]
-type intg = Tainted | Untainted [@@deriving sexp]
+type conf = Secret | Public [@@deriving sexp, equal]
+type intg = Tainted | Untainted [@@deriving sexp, equal]
 
-type t = conf * intg [@@deriving sexp]
+type t = conf * intg [@@deriving sexp, equal]
 
 let conf_leq a b = match (a, b) with
   | Secret, Public -> false

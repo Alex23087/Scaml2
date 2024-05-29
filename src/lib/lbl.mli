@@ -1,9 +1,9 @@
 exception SecurityException
 
-type conf = Secret | Public [@@deriving sexp]
-type intg = Tainted | Untainted [@@deriving sexp]
+type conf = Secret | Public [@@deriving sexp, equal]
+type intg = Tainted | Untainted [@@deriving sexp, equal]
 
-type t = conf * intg [@@deriving sexp]
+type t = conf * intg [@@deriving sexp, equal]
 
 val conf_leq : conf -> conf -> bool
 val intg_leq : intg -> intg -> bool
