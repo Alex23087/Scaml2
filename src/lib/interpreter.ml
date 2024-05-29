@@ -115,7 +115,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
                 | Fun (clenv, ide, body) -> (
                   let newenv = Env.bind clenv ide ((Val.Defer (clenv, Exp.Fixs(expr))), l') in
                   let (v, l'') = eval_exp newenv (Lbl.join pc l') body in
-                  (v, Lbl.join (Lbl.join pc l') l'')
+                  (v, Lbl.joins [pc; l'; l''])
                 )
                 | _ -> failwith ("Applying fixpoint to non function value: " ^ (Val.to_string closure))
 
