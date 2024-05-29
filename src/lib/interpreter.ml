@@ -125,19 +125,6 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 
 				| _ -> failwith ("Applying fixpoint to non tuple value: " ^ (Val.to_string tuplexpr))
 		)
-    (* | Fixes (exps) -> (
-      let rec closures = lazy (List.map (fun exp -> match (eval_exp exp env effEnv) with
-          | Closure (is, body, env) -> Closure (
-            drop (List.length exps) is,
-            body,
-            fun y -> let io = List.find_index (fun i -> i = y) (take (List.length exps) is) in 
-              match io with
-                | Some i -> (List.nth (Lazy.force closures) i)
-                | None -> env y
-            )
-          | _ -> failwith "Applying fixpoint to non-function"
-      ) exps) in Lista (Lazy.force closures)
-    ) *)
 		| Let (attrs, ide, expr, body) -> (
 			let (v1, l1) = eval_exp env pc expr in
 			(if Lbl.(<=) l1 (Aux.attr_list_to_lbl attrs ~default:Lbl.top)
