@@ -120,8 +120,8 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
                 | _ -> failwith ("Applying fixpoint to non function value: " ^ (Val.to_string closure))
 
             ) in
-            let partial_joins = Lbl.joins (List.map tied_closures ~f:(fun (_, l) -> l)) in
-            (Val.Tuple tied_closures, Lbl.join l partial_joins)
+            let lbl = Lbl.joins ([l] @ (List.map tied_closures ~f:(fun (_, l) -> l))) in
+            (Val.Tuple tied_closures, lbl)
 
 				| _ -> failwith ("Applying fixpoint to non tuple value: " ^ (Val.to_string tuplexpr))
 		)
