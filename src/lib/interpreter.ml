@@ -161,7 +161,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
   | If (guard, bthen, belse) ->
       let bguard, lc = eval_exp env pc guard in
       let resv, resl =
-        eval_exp env pc
+        eval_exp env (Lbl.join pc lc)
           (match bguard with
           | Val.Bool true -> bthen
           | Val.Bool false -> belse
@@ -213,7 +213,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
   | HasAttr (attr, e) ->
       let _, l = eval_exp env pc e in
-      (Aux.eq_attr_lbl attr l |> Val.Bool, Lbl.joins [ pc; l ])
+      (Aux.eq_attr_lbl attr l |> Val.Bool, Lbl.join pc l)
 
   | Die -> failwith "Died"
 
