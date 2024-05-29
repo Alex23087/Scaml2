@@ -184,6 +184,9 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
             )
           | _ -> failwith ("Trying to access field of non-tuple value: " ^ (Val.to_string tup))
       )
+    | HasAttr (attr, e) ->
+        let (_, l) = eval_exp env pc e in
+          (Aux.eq_attr_lbl attr l |> Val.Bool, Lbl.joins [pc; l])
 		| Die -> failwith ("Died")
 		| _ -> failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 

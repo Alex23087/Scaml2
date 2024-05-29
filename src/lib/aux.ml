@@ -8,6 +8,11 @@ let attr_to_lbl (attr: Let_attr.t) ~(default: Lbl.t): Lbl.t =
   | Tainted   -> (Lbl.conf_proj default, Lbl.Tainted)
   | Untainted -> (Lbl.conf_proj default, Lbl.Untainted)
 
+let eq_attr_lbl (attr: Let_attr.t) (lbl: Lbl.t): bool =
+  let (conf, intg) = attr_to_lbl attr ~default:lbl in
+  let (conf', intg') = lbl in
+  (conf = conf') && (intg = intg')
+
 
 let attr_list_to_lbl (attrs: Let_attr.t Base.list) ~(default: Lbl.t) =
   let attrs = List.map (attr_to_lbl ~default) attrs in
