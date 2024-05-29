@@ -237,17 +237,28 @@ and parse_atom = function
   | t :: _ -> raise_expected_str "atom" t
   | _ -> raise_expected_str_eof "atom"
 
-and parse_tuple toks =
-  let rec aux toks res =
-    let e, toks = parse_expr toks in
-    match toks with
-    | TComma :: toks -> aux toks (e :: res)
-    | TSquareClosed :: toks -> (List.rev (e :: res), toks)
-    | t :: _ -> raise_expected_str "',' or ']'" t
-    | [] -> raise_expected_str_eof "',' or ']'"
+and parse_tuple_common : 'a. (token list -> 'a * token list) -> token list -> ('a list * token list) =
+  fun parse toks ->
+  let rec aux res = function
+    | TSquareClosed :: toks -> (List.rev res, toks)
+    | toks ->
+       let e, toks = parse toks in
+       let res = e :: res in
+       match toks with
+       | TComma :: toks -> aux res toks
+       | (TSquareClosed :: _) as toks -> aux res toks
+       | t :: _ -> raise_expected_str "',' or ']'" t
+       | [] -> raise_expected_str_eof "',' or ']'"
   in
-  let es, toks = aux toks [] in
+  aux [] toks
+
+and parse_tuple toks =
+  let es, toks = parse_tuple_common parse_expr toks in
   (Exp.Tuple es, toks)
+
+and parse_type_tuple toks =
+  let types, toks = parse_tuple_common parse_type toks in
+  (Typ.Tuple types, toks)
 
 and parse_module toks =
   let rec aux toks res =
@@ -273,24 +284,52 @@ and parse_module toks =
   in
   aux toks []
 
-and parse_plugin _toks =
-  failwith "unimplemented"
-  (* let parse_type toks res = *)
-  (*   match toks with *)
-  (*   | *)
+and parse_plugin toks =
+  let rec parse_intfs res = function
+    | TIde x :: toks ->
+       let toks = expect TColon toks in
+       let typ, toks = parse_type toks in
+       parse_intfs (((x, typ) : Intf.t) :: res) toks
 
-  (* let rec parse_intfs toks res = *)
-  (*   match toks  *)
-  (* in *)
-  (* match toks with *)
-  (* | TString fname :: toks -> *)
-  (*    let intfs, toks = parse_intfs toks [] in *)
-  (*    (Exp.Plugin (fname, intfs), toks) *)
+    | TEnd :: toks -> (List.rev res, toks)
 
-  (* | t :: _ -> raise_expected_str "file name after 'plugin'" t *)
-  (* | _ -> raise_expected_str_eof "file name after 'plugin'" *)
+    | t :: _ -> raise_expected_str "interface or 'end'" t
+    | _ -> raise_expected_str_eof "interface or 'end'"
+  in
 
+  match toks with
+  | TString fname :: toks ->
+     let intfs, toks = parse_intfs [] toks in
+     (Exp.Plugin (fname, intfs), toks)
 
+  | t :: _ -> raise_expected_str "file name after 'plugin'" t
+  | _ -> raise_expected_str_eof "file name after 'plugin'"
+
+and parse_type toks =
+  let rec aux t1 = function
+    | TArrow :: toks ->
+       let t2, toks = parse_type_atom toks in
+       aux (Typ.Fun (t1, t2)) toks
+    | toks -> (t1, toks)
+  in
+  let t1, toks = parse_type_atom toks in
+  aux t1 toks
+
+and parse_type_atom = function
+  | TAny :: toks -> (Typ.Any, toks)
+  | TTint :: toks -> (Typ.Int, toks)
+  | TTbool :: toks -> (Typ.Bool, toks)
+  | TTstring :: toks -> (Typ.String, toks)
+
+  | TSquareOpen :: toks -> parse_type_tuple toks
+
+  | TParOpen :: toks ->
+     let typ, toks = parse_type toks in
+     let toks = expect TParClosed toks in
+     (typ, toks)
+
+  | t :: _ -> raise_expected_str "type" t
+  | _ -> raise_expected_str_eof "type"
 
 and parse_binding toks =
   let attrs, toks = parse_attrs toks in

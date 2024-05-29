@@ -29,7 +29,7 @@ type token = TIde of Ide.t
            | TPrint | TDie
 
            (* types *)
-           | TTint | TTstring | TTbool | TTarrow | TAny
+           | TTint | TTstring | TTbool | TArrow | TAny
 [@@deriving equal, sexp]
 
 type lexer_error = string * int * int

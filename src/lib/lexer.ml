@@ -32,7 +32,7 @@ type token = TIde of Ide.t
            | TPrint | TDie
 
            (* types *)
-           | TTint | TTstring | TTbool | TTarrow | TAny
+           | TTint | TTstring | TTbool | TArrow | TAny
 [@@deriving equal, sexp]
 
 type lexer_error = string * int * int
@@ -53,7 +53,7 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                  ("int", Tok TTint);
                  ("string", Tok TTstring);
                  ("bool", Tok TTbool);
-                 ("->", Tok TTarrow);
+                 ("->", Tok TArrow);
                  ("any", Tok TAny);
 
                  ("(", Tok TParOpen  );  (")", Tok TParClosed);

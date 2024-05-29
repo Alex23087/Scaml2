@@ -111,3 +111,14 @@ let _ =
   with { sum x y k = k (x + y) }
   handle
     do stampa 10
+
+let p = plugin "plugin-path.scaml"
+  var : any
+  foo : int -> int
+  bar : (int -> string) -> bool
+  baz : [int, int -> string] -> []
+end
+
+let _ = []
+
+let _ = [1,]
