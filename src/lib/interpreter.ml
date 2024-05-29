@@ -120,7 +120,7 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
                 | _ -> failwith ("Applying fixpoint to non function value: " ^ (Val.to_string closure))
 
             ) in
-            let lbl = Lbl.joins ([l] @ (List.map tied_closures ~f:(fun (_, l) -> l))) in
+            let lbl = Lbl.joins (l :: (List.map tied_closures ~f:(fun (_, l) -> l))) in
             (Val.Tuple tied_closures, lbl)
 
 				| _ -> failwith ("Applying fixpoint to non tuple value: " ^ (Val.to_string tuplexpr))
@@ -167,6 +167,10 @@ let rec eval_exp (env: Exp.t Val.t Env.t) (pc: Lbl.t) (exp: Exp.t): Exp.t Val.t 
 						|> Stdio.print_string
 			); res
 		)
+    | Tuple exprs ->
+      let vals = List.map exprs ~f:(fun e -> eval_exp env pc e) in
+      let lbl = Lbl.joins (pc :: (List.map vals ~f:(fun (_, l) -> l))) in
+      (Val.Tuple vals, lbl)
 		| Die -> failwith ("Died")
 		| _ -> failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
