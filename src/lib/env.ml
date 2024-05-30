@@ -8,6 +8,7 @@ let of_alist x = x
 let to_alist x = x
 
 let bind env x v = (x, v) :: env
+let bind_all env bindings = List.fold bindings ~init:env ~f:(fun env (x, v) -> bind env x v)
 let lookup env x = List.Assoc.find env x ~equal:Ide.(=)
 
 let lookup_exn env x =

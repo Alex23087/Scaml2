@@ -158,9 +158,17 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       let v, l = eval_exp new_env pc body in
       (v, Lbl.join pc l)
 
-  (* | LetRec (a,b) -> (
-    failwith "LetRec not implemented"
-  ) *)
+  | LetRec (decls, body) -> (
+    let rec new_binds = List.map decls ~f:(fun (attrs, ide, expr) ->
+        let v1, l1 = eval_exp (lazy (Env.bind_all env new_binds)) pc expr in
+        if Lbl.( <= ) l1 (Let_attr.list_to_lbl attrs ~default:Lbl.top) then ()
+        else raise Lbl.SecurityException;
+        (ide, (v1, Lbl.join l1 (Let_attr.list_to_lbl attrs ~default:Lbl.bot)))
+      ) in
+    let new_env = Env.bind_all env new_binds in
+    let v, l = eval_exp new_env pc body in
+    (v, Lbl.join pc l)
+  )
   | If (guard, bthen, belse) ->
       let bguard, lc = eval_exp env pc guard in
       let resv, resl =

@@ -14,9 +14,10 @@ let rec mod_let_desugaring (decls: Exp.t Decl.t Base.list): Exp.t =
         | Decl.Let (attrs, ide, exp) -> (
           Exp.Let (attrs, ide, exp, mod_let_desugaring ds)
         )
-        (* TODO: | Decl.LetRec *)
+        | Decl.LetRec (list) -> (
+          Exp.LetRec (list, mod_let_desugaring ds)
+        )
         | Export _ -> mod_let_desugaring ds
-        | _ -> raise (Invalid_argument "mod_let_desugaring can only accept a list of let declarations")
     )
 
 let restrict_to_intfs (env : 'a Env.t) (intfs : Intf.t list) : 'a Env.t =
