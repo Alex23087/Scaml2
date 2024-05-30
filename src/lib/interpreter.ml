@@ -148,12 +148,13 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
             ("Applying fixpoint to non tuple value: " ^ Val.to_string tuplexpr))
 
   | Let (attrs, ide, expr, body) ->
+      let plugin = Aux.get_plugin_exn env in
       let v1, l1 = eval_exp env pc expr in
-      if Lbl.( <= ) l1 (Let_attr.list_to_lbl attrs ~default:Lbl.top) then ()
+      if Lbl.(l1 <= Let_attr.list_to_lbl attrs ~plugin:0 ~meet:true) then ()
       else raise Lbl.SecurityException;
       let new_env =
         Env.bind env ide
-          (v1, Lbl.join l1 (Let_attr.list_to_lbl attrs ~default:Lbl.bot))
+          (v1, Lbl.join l1 (Let_attr.list_to_lbl attrs ~plugin ~meet:false))
       in
       let v, l = eval_exp new_env pc body in
       (v, Lbl.join pc l)
@@ -188,8 +189,8 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
          |> Sexp.to_string_hum
          |> Stdio.print_endline; *)
       (match res with
-      | _, (Secret, _) -> raise Lbl.SecurityException
-      | res, _ -> res |> Val.to_string |> Stdio.print_string);
+      | res, (Public, _) -> res |> Val.to_string |> Stdio.print_string
+      | _ -> raise Lbl.SecurityException);
       res
 
   | Tuple exprs ->
@@ -221,11 +222,11 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
   | HasAttr (attr, e) ->
       let _, l = eval_exp env pc e in
-      (Aux.eq_attr_lbl attr l |> Val.Bool, Lbl.join pc l)
+      (Let_attr.matches_lbl attr l |> Val.Bool, Lbl.join pc l)
 
   | Plugin (fname, intfs) ->
       let e = Parser.parse_file fname in
-      (match eval_exp Env.empty_env Lbl.bot e with
+      (match eval_exp Env.empty Lbl.bot e with
        | Val.Mod env, l ->
            (Val.Plugin (Aux.restrict_to_intfs env intfs),
             Lbl.join pc l)
@@ -236,4 +237,6 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
   | _ ->
       failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
-let eval = eval_exp Env.empty_env Lbl.bot
+let main_env = Aux.set_plugin Env.empty 0
+
+let eval = eval_exp main_env Lbl.bot

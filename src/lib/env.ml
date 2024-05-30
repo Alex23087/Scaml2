@@ -16,7 +16,7 @@ let lookup_exn env x =
       let msg = "Identifier " ^ (Ide.to_string x) ^ " not bound" in
       raise (IdentifierNotBound msg))
 
-let empty_env: 'a t = []
+let empty : 'a t = []
 
 let restrict (export_list: 'b Decl.t list) (env: 'a t): 'a t =
   let exports = List.filter_map export_list
