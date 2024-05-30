@@ -158,6 +158,9 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       let v, l = eval_exp new_env pc body in
       (v, Lbl.join pc l)
 
+  (* | LetRec (a,b) -> (
+    failwith "LetRec not implemented"
+  ) *)
   | If (guard, bthen, belse) ->
       let bguard, lc = eval_exp env pc guard in
       let resv, resl =
@@ -200,9 +203,14 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       match tup with
       | Tuple vals -> (
           match idx with
-          | Val.Int i ->
-              let v, lbl = List.nth_exn vals i in
-              (v, Lbl.joins [ pc; lt; li; lbl ])
+          | Val.Int i ->(
+                let v, lbl = List.nth_exn vals i in
+                match v with
+                | Val.Defer (delta', expr) ->
+                    let v, l2 = eval_exp delta' pc expr in
+                    (v, Lbl.joins [ pc; lt; li; lbl; l2 ])
+                | _ -> (v, Lbl.joins [ pc; lt; li; lbl ])
+              )
           | _ ->
               failwith
                 ("Trying to access field of tuple with non-integer index: "
