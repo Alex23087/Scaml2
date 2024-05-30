@@ -1,0 +1,13 @@
+# let rec even = \x. if x = 0 then true else odd (x - 1) end
+# and odd = \x. if x = 0 then false else even (x - 1) end
+
+# let rec even = \x. if x = 0 then true else even[1] (x - 1) end
+# and odd = \x. if x = 0 then false else odd[0] (x - 1) end
+
+let rec even = \x. let odd = even[1] in if x = 0 then true else odd (x - 1) end
+and odd = \x. let even = odd[0] in  if x = 0 then false else even (x - 1) end
+
+let _ = print (even 1001)
+let _ = print (odd 1001)
+let _ = print (even 16)
+let _ = print (odd 16)

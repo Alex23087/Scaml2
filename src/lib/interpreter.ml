@@ -150,18 +150,26 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
   | Let (attrs, ide, expr, body) ->
       let plugin = Aux.get_plugin_exn env in
       let v1, l1 = eval_exp env pc expr in
-      if Lbl.(l1 <= Let_attr.list_to_lbl attrs ~plugin:0 ~meet:true) then ()
-      else raise Lbl.SecurityException;
-      let new_env =
-        Env.bind env ide
-          (v1, Lbl.join l1 (Let_attr.list_to_lbl attrs ~plugin ~meet:false))
-      in
-      let v, l = eval_exp new_env pc body in
+      let l1' = Let_attr.cast_lbl l1 ~to_:attrs ~plugin in
+      let env' = Env.bind env ide (v1, l1') in
+      let v, l = eval_exp env' pc body in
       (v, Lbl.join pc l)
 
-  (* | LetRec (a,b) -> (
-    failwith "LetRec not implemented"
-  ) *)
+  | LetRec (decls, body) ->
+      let fns = List.map decls ~f:(fun (_, x, e) -> Exp.Lam (x, e)) in
+      (match eval_exp env pc (Exp.Fixs (Exp.Tuple fns)) with
+       | Val.Tuple vs, _ -> (* TODO usare il label? *)
+           let plugin = Aux.get_plugin_exn env in
+           let binds =
+             List.map2_exn decls vs ~f:(fun (attrs, x_i, _) (v_i, l_i) ->
+                 (x_i, (v_i, Let_attr.cast_lbl l_i ~to_:attrs ~plugin)))
+           in
+           let env' = Env.bind_all env binds in
+           let v, l' = eval_exp env' pc body in
+           (v, Lbl.join pc l')
+
+       | _ -> failwith "fix* didn't return a tuple")
+
   | If (guard, bthen, belse) ->
       let bguard, lc = eval_exp env pc guard in
       let resv, resl =

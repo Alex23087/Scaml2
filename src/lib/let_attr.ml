@@ -22,3 +22,10 @@ let matches_lbl (attr : t) (lbl : Lbl.t) =
     -> true
 
   | _ -> false
+
+
+let cast_lbl ~(to_ : t list) ~(plugin : int) (lbl : Lbl.t) =
+  let open Lbl in
+  if lbl <= list_to_lbl to_ ~plugin:0 ~meet:true
+  then join lbl (list_to_lbl to_ ~plugin ~meet:false)
+  else raise SecurityException;
