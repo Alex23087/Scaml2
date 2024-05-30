@@ -3,7 +3,7 @@ open Base
 type 'a naked_val = Int of int
                   | String of string
                   | Bool of bool
-                  | Fun of 'a t Env.t * Ide.t * 'a
+                  | Fun of 'a t Env.t lazy_t * Ide.t * 'a
                   | Tuple of 'a t list
                   | Defer of 'a t Env.t * 'a
                   | Mod of 'a t Env.t

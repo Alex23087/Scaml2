@@ -17,14 +17,14 @@ let raise_invalid_uop uop v =
        ^ Sexp.to_string_hum (Uop.sexp_of_t uop)
        ^ " to argument " ^ Val.to_string v))
 
-let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
+let rec eval_exp (env : Exp.t Val.t Env.t lazy_t) (pc : Lbl.t) (exp : Exp.t) :
     Exp.t Val.t =
   match exp with
   | Var ide -> (
-      let v, ell = Env.lookup_exn env ide in
+      let v, ell = Env.lookup_exn (Lazy.force env) ide in
       match v with
       | Val.Defer (delta', expr) ->
-          let v, ell2 = eval_exp delta' pc expr in
+          let v, ell2 = eval_exp (lazy delta') pc expr in
           (v, Lbl.joins [ pc; ell; ell2 ])
       | _ -> (v, Lbl.join pc ell))
 
@@ -99,22 +99,22 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       let param = eval_exp env pc argexp in
       match closure with
       | Fun (clenv, ide, body) ->
-          let newenv = Env.bind clenv ide param in
-          let u, lu = eval_exp newenv (Lbl.join pc lf) body in
+          let newenv = Env.bind (Lazy.force clenv) ide param in
+          let u, lu = eval_exp (lazy newenv) (Lbl.join pc lf) body in
           (u, Lbl.joins [ pc; lf; lu ])
       | _ -> failwith ("Applying non function value: " ^ Val.to_string closure))
 
-  | Lam (ide, body) -> (Val.Fun (env, ide, body), pc)
-
+  | Lam (ide, body) ->
+    (Val.Fun (env, ide, body), pc)
   | Fix expr -> (
       let closure, l = eval_exp env pc expr in
       match closure with
       | Fun (clenv, ide, body) ->
           let newenv =
-            Env.bind clenv ide
-              (Val.Defer (clenv, Exp.Fix (Exp.Lam (ide, body))), l)
+            Env.bind (Lazy.force clenv) ide
+              (Val.Defer (Lazy.force clenv, Exp.Fix (Exp.Lam (ide, body))), l)
           in
-          let v, l' = eval_exp newenv (Lbl.join pc l) body in
+          let v, l' = eval_exp (lazy newenv) (Lbl.join pc l) body in
           (v, Lbl.joins [ pc; l; l' ])
       | _ ->
           failwith
@@ -130,9 +130,9 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
                 match closure with
                 | Fun (clenv, ide, body) ->
                     let newenv =
-                      Env.bind clenv ide (Val.Defer (clenv, Exp.Fixs expr), l')
+                      Env.bind (Lazy.force clenv) ide (Val.Defer ((Lazy.force clenv), Exp.Fixs expr), l')
                     in
-                    let v, l'' = eval_exp newenv (Lbl.join pc l') body in
+                    let v, l'' = eval_exp (lazy newenv) (Lbl.join pc l') body in
                     (v, Lbl.joins [ pc; l'; l'' ])
                 | _ ->
                     failwith
@@ -152,21 +152,20 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       if Lbl.( <= ) l1 (Let_attr.list_to_lbl attrs ~default:Lbl.top) then ()
       else raise Lbl.SecurityException;
       let new_env =
-        Env.bind env ide
+        Env.bind (Lazy.force env) ide
           (v1, Lbl.join l1 (Let_attr.list_to_lbl attrs ~default:Lbl.bot))
       in
-      let v, l = eval_exp new_env pc body in
+      let v, l = eval_exp (lazy new_env) pc body in
       (v, Lbl.join pc l)
 
   | LetRec (decls, body) -> (
-    let rec new_binds = List.map decls ~f:(fun (attrs, ide, expr) ->
-        let v1, l1 = eval_exp (lazy (Env.bind_all env new_binds)) pc expr in
+    let rec new_binds = lazy (List.map decls ~f:(fun (attrs, ide, expr) ->
+        let v1, l1 = eval_exp (lazy (Env.bind_all (Lazy.force env) (Lazy.force new_binds))) pc expr in
         if Lbl.( <= ) l1 (Let_attr.list_to_lbl attrs ~default:Lbl.top) then ()
         else raise Lbl.SecurityException;
         (ide, (v1, Lbl.join l1 (Let_attr.list_to_lbl attrs ~default:Lbl.bot)))
-      ) in
-    let new_env = Env.bind_all env new_binds in
-    let v, l = eval_exp new_env pc body in
+      )) in
+    let v, l = eval_exp (lazy (Env.bind_all (Lazy.force env) (Lazy.force new_binds))) pc body in
     (v, Lbl.join pc l)
   )
   | If (guard, bthen, belse) ->
@@ -184,7 +183,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       let modlet = Aux.mod_let_desugaring decls in
       let modclosure = eval_exp env pc modlet in
       match modclosure with
-      | Val.Fun (newenv, _, _), _l -> (Val.Mod (Env.restrict decls newenv), pc)
+      | Val.Fun (newenv, _, _), _l -> (Val.Mod (Env.restrict decls (Lazy.force newenv)), pc)
       | _ ->
           failwith "Impossible! mod_let_desugaring necessarily returns a lambda"
       )
@@ -215,7 +214,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
                 let v, lbl = List.nth_exn vals i in
                 match v with
                 | Val.Defer (delta', expr) ->
-                    let v, l2 = eval_exp delta' pc expr in
+                    let v, l2 = eval_exp (lazy delta') pc expr in
                     (v, Lbl.joins [ pc; lt; li; lbl; l2 ])
                 | _ -> (v, Lbl.joins [ pc; lt; li; lbl ])
               )
@@ -233,7 +232,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
   | Plugin (fname, intfs) ->
       let e = Parser.parse_file fname in
-      (match eval_exp Env.empty_env Lbl.bot e with
+      (match eval_exp (lazy Env.empty_env) Lbl.bot e with
        | Val.Mod env, l ->
            (Val.Plugin (Aux.restrict_to_intfs env intfs),
             Lbl.join pc l)
@@ -244,4 +243,4 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
   | _ ->
       failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
-let eval = eval_exp Env.empty_env Lbl.bot
+let eval = eval_exp (lazy Env.empty_env) Lbl.bot
