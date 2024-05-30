@@ -170,27 +170,50 @@ The surface syntax has ; let and forse rec boh zucchero per le funzioni let, ret
 
 \section{Operational semantics}
 
-Lbl lattice
+% % https://q.uiver.app/#q=WzAsNCxbMSw0LCIoXFxtYXRocm17cHVibGljfSwgXFxtYXRocm17dW50YWludGVkfSkiXSxbMiwyLCIoXFxtYXRocm17cHVibGljfSwgXFxtYXRocm17dGFpbnRlZH0pIl0sWzAsMiwiKFxcbWF0aHJte3NlY3JldH0sIFxcbWF0aHJte3VudGFpbnRlZH0pIl0sWzEsMCwiKFxcbWF0aHJte3NlY3JldH0sIFxcbWF0aHJte3RhaW50ZWR9KSJdLFswLDIsIiIsMCx7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMiwzLCIiLDAseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzAsMSwiIiwyLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFsxLDMsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XV0=
+% \[\begin{tikzcd}
+%     & {(\mathrm{secret}, \mathrm{tainted})} \\
+%     \\
+%     {(\mathrm{secret}, \mathrm{untainted})} && {(\mathrm{public}, \mathrm{tainted})} \\
+%     \\
+%     & {(\mathrm{public}, \mathrm{untainted})}
+%     \arrow[no head, from=3-1, to=1-2]
+%     \arrow[no head, from=3-3, to=1-2]
+%     \arrow[no head, from=5-2, to=3-1]
+%     \arrow[no head, from=5-2, to=3-3]
+%   \end{tikzcd}\]
 
-% https://q.uiver.app/#q=WzAsNCxbMSw0LCIoXFxtYXRocm17cHVibGljfSwgXFxtYXRocm17dW50YWludGVkfSkiXSxbMiwyLCIoXFxtYXRocm17cHVibGljfSwgXFxtYXRocm17dGFpbnRlZH0pIl0sWzAsMiwiKFxcbWF0aHJte3NlY3JldH0sIFxcbWF0aHJte3VudGFpbnRlZH0pIl0sWzEsMCwiKFxcbWF0aHJte3NlY3JldH0sIFxcbWF0aHJte3RhaW50ZWR9KSJdLFswLDIsIiIsMCx7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMiwzLCIiLDAseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzAsMSwiIiwyLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFsxLDMsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XV0=
+Values are tagged with labels, which belong to a lattice \(L\). \(L\) is itself
+the product of the confidentiality and integrity lattices, \(I\) and \(C\), as
+follows:
+% https://q.uiver.app/#q=WzAsOSxbMSwzLCJcXG1hdGhybXtwdWJsaWN9Il0sWzAsMiwiXFxtYXRocm17c2VjcmV0fV4xX3t9Il0sWzEsMiwiXFxtYXRocm17c2VjcmV0fV5uIl0sWzEsMSwiXFxtYXRocm17c2VjcmV0fV4wIl0sWzEsMCwiQyJdLFszLDAsIkkiXSxbMywxLCJcXG1hdGhybXt0YWludGVkfSJdLFszLDMsIlxcbWF0aHJte3VudGFpbnRlZH0iXSxbMiwyLCJcXHBoYW50b217XFxtYXRocm17c2VjcmV0fV4xX3t9fSJdLFswLDEsIiIsMCx7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMSwzLCIiLDAseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzIsMywiIiwyLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFswLDIsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMSwyLCJcXGNkb3RzIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoibm9uZSJ9LCJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzYsN10sWzAsOCwiIiwyLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFs4LDMsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMiw4LCJcXGNkb3RzIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoibm9uZSJ9LCJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzgsMTQsIlxcdGltZXMiLDEseyJsYWJlbF9wb3NpdGlvbiI6MCwic2hvcnRlbiI6eyJ0YXJnZXQiOjIwfSwic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoibm9uZSJ9LCJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzksMTIsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMTIsMTUsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMTAsMTEsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMTYsMTEsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XV0=
 \[\begin{tikzcd}
-    & {(\mathrm{secret}, \mathrm{tainted})} \\
-    \\
-    {(\mathrm{secret}, \mathrm{untainted})} && {(\mathrm{public}, \mathrm{tainted})} \\
-    \\
-    & {(\mathrm{public}, \mathrm{untainted})}
-    \arrow[no head, from=3-1, to=1-2]
-    \arrow[no head, from=3-3, to=1-2]
-    \arrow[no head, from=5-2, to=3-1]
-    \arrow[no head, from=5-2, to=3-3]
-  \end{tikzcd}\]
+	& C && I \\
+	& {\mathrm{secret}^0} && {\mathrm{tainted}} \\
+	{\mathrm{secret}^1_{}} & {\mathrm{secret}^n} & {\phantom{\mathrm{secret}^1_{}}} \\
+	& {\mathrm{public}} && {\mathrm{untainted}}
+	\arrow[""{name=0, anchor=center, inner sep=0}, from=2-4, to=4-4]
+	\arrow[""{name=1, anchor=center, inner sep=0}, no head, from=3-1, to=2-2]
+	\arrow["\cdots"{description}, draw=none, from=3-1, to=3-2]
+	\arrow[""{name=2, anchor=center, inner sep=0}, no head, from=3-2, to=2-2]
+	\arrow["\cdots"{description}, draw=none, from=3-2, to=3-3]
+	\arrow[""{name=3, anchor=center, inner sep=0}, no head, from=3-3, to=2-2]
+	\arrow[""{name=4, anchor=center, inner sep=0}, no head, from=4-2, to=3-1]
+	\arrow[""{name=5, anchor=center, inner sep=0}, no head, from=4-2, to=3-2]
+	\arrow[""{name=6, anchor=center, inner sep=0}, no head, from=4-2, to=3-3]
+	\arrow["\cdots"{marking, allow upside down}, draw=none, from=1, to=2]
+	\arrow["\cdots"{marking, allow upside down}, draw=none, from=3, to=2]
+	\arrow["\times"{description, pos=0}, draw=none, from=3-3, to=0]
+	\arrow["\cdots"{marking, allow upside down}, draw=none, from=4, to=5]
+	\arrow["\cdots"{marking, allow upside down}, draw=none, from=5, to=6]
+\end{tikzcd}\]
 
 \begin{align*}
   \mathrm{Val} &= \mathrm{BareVal} \times \mathrm{Lbl}
   \\
-  \mathrm{BareVal} &= \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool} \cup \mathrm{Fun} \cup \mathrm{Val}^* \cup \mathrm{Defer} \cup \mathrm{Mod} \cup \mathrm{ValType} \cup \mathrm{NoSecret}
-  \\
-  \mathrm{NoSecret} &= \left\{ \vnosecret v \mid v \in \mathrm{BareVal} \right\}
+  \mathrm{BareVal} &= \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool} \cup \mathrm{Fun} \cup \mathrm{Val}^* \cup \mathrm{Defer} \cup \mathrm{Mod} \cup \mathrm{ValType} % \cup \mathrm{NoSecret}
+  % \\
+  % \mathrm{NoSecret} &= \left\{ \vnosecret v \mid v \in \mathrm{BareVal} \right\}
   \\
   \\
   \mathrm{Int} &= \mathbb N \\
@@ -261,32 +284,32 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
   % {\bstep{\Delta}{pc}{e_1}{\vnosecret f}{\ell_{f}}}
   % {\bstep{\Delta}{pc}{\valpair f~e_2}{asd}{\ell_{f}}}
   % {\bstep{\Delta}{pc}{e_1~e_2}{\text{apply-nosecret}()}{pc}} \\[1.5ex]\displaybreak[0]
-  \prftree[r]{[AppNoSecret]}
-  {\prfStackPremises
-    {{\bstep{\Delta}{pc}{e_1}{\vnosecret {\vlam {\Delta'} x e}}{\ell_{f}}}
-    \quad {\bste{\Delta}{pc}{e_2}{\valpair v}}}
-    {\bstep{\ext {\Delta'} x {\valpair v}}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}} \triangleq \valpair u}}
-  {\bstep{\Delta}{pc}{e_1~e_2}{\text{apply-nosecret}(\valpair u)}{pc \sqcup \ell_{f} \sqcup \ell_{u}}} \\[1.5ex]\displaybreak[0]
+  % \prftree[r]{[AppNoSecret]}
+  % {\prfStackPremises
+  %   {{\bstep{\Delta}{pc}{e_1}{\vnosecret {\vlam {\Delta'} x e}}{\ell_{f}}}
+  %   \quad {\bste{\Delta}{pc}{e_2}{\valpair v}}}
+  %   {\bstep{\ext {\Delta'} x {\valpair v}}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}} \triangleq \valpair u}}
+  % {\bstep{\Delta}{pc}{e_1~e_2}{\text{apply-nosecret}(\valpair u)}{pc \sqcup \ell_{f} \sqcup \ell_{u}}} \\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[AppIntf]}
   {\prfStackPremises
-    {\bstep{\Delta}{pc}{e_1}{(\vlam {\Delta'} x e) : \tau_1 \to \tau_2}{\ell_{f}}}
-    {\bste{\Delta}{pc}{e_2}{\valpair v}
-      \quad \valpair v' \triangleq \text{apply-nosecret}(\valpair v)
-      \quad \valpair v'' \triangleq \text{apply-intf}(\valpair v', \tau_1)}
-    {\bstep{\ext {\Delta'} x {\valpair v''}}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}} \triangleq \valpair u
-    \quad \langle u', \ell_{u}' \rangle \triangleq \text{apply-intf}(\valpair u, \tau_2)}}
-  {\bstep{\Delta}{pc}{e_1~e_2}{u'}{pc \sqcup \ell_{f} \sqcup \ell_{u}'}} \\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[AppIntfNoSecret]}
-  {\prfStackPremises
-    {\bstep{\Delta}{pc}{e_1}{\vnosecret {(\vlam {\Delta'} x e) : \tau_1 \to \tau_2}}{\ell_{f}}}
-    {\bste{\Delta}{pc}{e_2}{\valpair v}
-      \quad \valpair v' \triangleq \text{apply-nosecret}(\valpair v)
-      \quad \valpair v'' \triangleq \text{apply-intf}(\valpair v', \tau_1)}
+    {{\bstep{\Delta}{pc}{e_1}{(\vlam {\Delta'} x e) : \tau_1 \to \tau_2}{\ell_{f}}}
+    \quad \bste{\Delta}{pc}{e_2}{\valpair v}
+      % \quad \valpair v' \triangleq \text{apply-nosecret}(\valpair v)
+      \quad \valpair v' \triangleq \text{apply-intf}(\valpair v, \tau_1)}
     {\bstep{\ext {\Delta'} x {\valpair v'}}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}} \triangleq \valpair u
-    \quad \valpair u' \triangleq \langle u', \ell_{u}' \rangle \triangleq \text{apply-intf}(\valpair u, \tau_2)}}
-  {\bstep{\Delta}{pc}{e_1~e_2}{\text{apply-nosecret}(\valpair u')}{pc \sqcup \ell_{f} \sqcup \ell_{u}'}} \\[4ex]\displaybreak[1]
+    \quad \langle u', \ell_{u}' \rangle \triangleq \text{apply-intf}(\valpair u, \tau_2)}}
+  {\bstep{\Delta}{pc}{e_1~e_2}{u'}{pc \sqcup \ell_{f} \sqcup \ell_{u}'}} \\[4ex]\displaybreak[1]
+  %
+  % \prftree[r]{[AppIntfNoSecret]}
+  % {\prfStackPremises
+  %   {\bstep{\Delta}{pc}{e_1}{\vnosecret {(\vlam {\Delta'} x e) : \tau_1 \to \tau_2}}{\ell_{f}}}
+  %   {\bste{\Delta}{pc}{e_2}{\valpair v}
+  %     \quad \valpair v' \triangleq \text{apply-nosecret}(\valpair v)
+  %     \quad \valpair v'' \triangleq \text{apply-intf}(\valpair v', \tau_1)}
+  %   {\bstep{\ext {\Delta'} x {\valpair v'}}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}} \triangleq \valpair u
+  %   \quad \valpair u' \triangleq \langle u', \ell_{u}' \rangle \triangleq \text{apply-intf}(\valpair u, \tau_2)}}
+  % {\bstep{\Delta}{pc}{e_1~e_2}{\text{apply-nosecret}(\valpair u')}{pc \sqcup \ell_{f} \sqcup \ell_{u}'}} \\[4ex]\displaybreak[1]
   %
   \prftree[r]{[Uop]}
   {\bstep{\Delta}{pc}{e}{v}{\ell}}
@@ -326,9 +349,10 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
   {\bstep{\Delta}{pc}{\sfixs{e}}{[\valpair{v}_1, \dots, \valpair{v}_{n}]}{pc \sqcup \ell \sqcup \bigsqcup_{i=1}^{n} \ell_{i} \sqcup \bigsqcup_{i=1}^{n} \ell_{i}'}}\\[4ex]\displaybreak[1]
   %
   \prftree[r]{[Let]}
-  {\bstep{\Delta}{pc}{e_1}{v_1}{\ell_{1}}}
-  {\ell_1 \sqsubseteq \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
-  {\bstep{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{v}{\ell}}
+  {\prfStackPremises
+    {\bstep{\Delta}{pc}{e_1}{v_1}{\ell_{1}}
+    \quad p \triangleq \Delta(\mathrm{plugin}) \quad \ell_1 \sqsubseteq \llbracket p; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
+    {\bstep{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket p; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{v}{\ell}}}
   {\bstep{\Delta}{pc}{\slet {a_1~\dots~a_{n}} x {e_1} {e_2}}{v}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
   %
   % TODO rimettere?
@@ -346,9 +370,9 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
             \scomma \dots \scomma
             \slam {x_m} {e_m}}
         }}{\langle [ \langle v_{i}, \ell_{i} \rangle ]_{i \in [1,m]} ,\; \ell \rangle}}
-    {{\forall i \in [1,m].\; \ell_i \sqsubseteq \llbracket a_1^{i},\dots,a_{n}^{i} \rrbracket_{\mathrm{attr}}^{\top}} \quad
-      {\valpair u_{i} \triangleq \langle v_i, \ell_i \sqcup  \llbracket a_1^{i},\dots,a_{n}^{i} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}
-    {\bstep{\Delta[x_1 \mapsto \valpair u_{1}, \dots, x_m \mapsto \valpair u_{m}]}{pc}{e}{v}{\ell'}}}
+    {p \triangleq \Delta(\mathrm{plugin}) \quad {\forall i \in [1,m].\; \ell_i \sqsubseteq \llbracket p; a_1^{i},\dots,a_{n}^{i} \rrbracket_{\mathrm{attr}}^{\top}}}
+    {  {\valpair u_{i} \triangleq \langle v_i, \ell_i \sqcup  \llbracket p; a_1^{i},\dots,a_{n}^{i} \rrbracket_{\mathrm{attr}}^{\bot}\rangle} \quad
+    \bstep{\Delta[x_1 \mapsto \valpair u_{1}, \dots, x_m \mapsto \valpair u_{m}]}{pc}{e}{v}{\ell'}}}
   {\bstep{\Delta}{pc}{\texttt{let rec}~{a_1^{1}~\dots~a_{n_{1}}^{1}}~x_{i} = {e_1}~(\texttt{and}~{a_1^{i}~\dots~a_{n_{i}}^{i}}~x_{i} = e_i)_{i \in [2,m]}~\texttt{in}~e}{v}{pc \sqcup \ell'}} \\[4ex]\displaybreak[1]
   %
   \prftree[r]{[Module]}
@@ -363,7 +387,8 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
   %
   \prftree[r]{[Plugin]}
   {\prfStackPremises
-    {\bstep{\varnothing}{\bot}{\text{read-file}(f)}{\vmodule{\Delta'}}{\ell}}
+    {p~\text{fresh plugin number}}
+    {\bstep{\ext{\varnothing}{\mathrm{plugin}}{p}}{\bot}{\text{read-file}(f)}{\vmodule{\Delta'}}{\ell}}
     {\Delta''(x) \triangleq
       \begin{cases}
         \text{apply-intf}(\Delta'(x),\tau) & (x:\tau) \in \left\{ i_1,\dots,i_{n} \right\} \\
@@ -375,13 +400,13 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
   {\bstep{\Delta}{pc}{e}{\textit{m}~{\Delta'}}{\ell}}
   {\Delta'(x) = \langle v, \ell' \rangle}
   {\textit{m} \in \left\{ \mathrm{mod}, \mathrm{tmod}, \mathrm{plug} \right\}}
-  {\bstep{\Delta}{pc}{e.x}{v}{pc \sqcup \ell \sqcup \ell'}}\\[1.5ex]\displaybreak[0]
+  {\bstep{\Delta}{pc}{e.x}{v}{pc \sqcup \ell \sqcup \ell'}}\\[4ex]\displaybreak[1]
   %
-  \prftree[r]{[FieldAccessNoSecret]}
-  {\bstep{\Delta}{pc}{e}{\textit{m}~{\Delta'}}{\ell}}
-  {\Delta'(x) = \langle \vnosecret v, \ell' \rangle}
-  {\textit{m} \in \left\{ \mathrm{mod}, \mathrm{tmod}, \mathrm{plug} \right\}}
-  {\bstep{\Delta}{pc}{e.x}{\text{apply-nosecret}(v)}{pc \sqcup \ell \sqcup \ell'}}\\[4ex]\displaybreak[1]
+  % \prftree[r]{[FieldAccessNoSecret]}
+  % {\bstep{\Delta}{pc}{e}{\textit{m}~{\Delta'}}{\ell}}
+  % {\Delta'(x) = \langle \vnosecret v, \ell' \rangle}
+  % {\textit{m} \in \left\{ \mathrm{mod}, \mathrm{tmod}, \mathrm{plug} \right\}}
+  % {\bstep{\Delta}{pc}{e.x}{\text{apply-nosecret}(v)}{pc \sqcup \ell \sqcup \ell'}}\\[4ex]\displaybreak[1]
   %
   \prftree[r]{[HasAttr]}
   {\bstep{\Delta}{pc}{e}{v}{\langle \ell_{C}, \ell_{I} \rangle}}
@@ -406,12 +431,12 @@ TODO: Check Module, Decl, finish Trusted and Plugin
 Strict mode Let e Decl sempre \(\top\).
 
 \begin{align*}
-  \llbracket a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\top} &= \bigsqcap_{i=1} \llbracket a_i \rrbracket_{\mathrm{attr}}^{\top} \qquad n \neq 1 \\
-  \llbracket a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\bot} &= \bigsqcup_{i=1} \llbracket a_i \rrbracket_{\mathrm{attr}}^{\bot} \qquad n \neq 1 \\
-  \llbracket \texttt{secret} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{secret}, X_{I}) \\
-  \llbracket \texttt{public} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{public}, X_{I}) \\
-  \llbracket \texttt{tainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{tainted}) \\
-  \llbracket \texttt{untainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{untainted})
+  \llbracket p; a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\top,p} &= \bigsqcap_{i=1} \llbracket p; a_i \rrbracket_{\mathrm{attr}}^{\top} \qquad n \neq 1 \\
+  \llbracket p; a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\bot,p} &= \bigsqcup_{i=1} \llbracket p; a_i \rrbracket_{\mathrm{attr}}^{\bot} \qquad n \neq 1 \\
+  \llbracket p; \texttt{secret} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{secret}^{p}, X_{I}) \\
+  \llbracket p; \texttt{public} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{public}, X_{I}) \\
+  \llbracket p; \texttt{tainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{tainted}) \\
+  \llbracket p; \texttt{untainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{untainted})
 \end{align*}
 
 Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
@@ -514,34 +539,36 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
       ], \ell' \rangle
     \end{aligned}
     & \tau = \stuple{\tau_1\scomma \dots \scomma \tau_n} \wedge v = [\valpair{v}_1, \dots , \valpair{v}_n] \\[1.5ex]
-    {\vnosecret {\langle v'', \ell' \rangle} } &
-                                  \begin{aligned}
-                                    &v = \vnosecret {v'}\\
-                                    &\wedge \langle v'', \ell' \rangle = {\text{apply-intf}(\langle v', \ell \rangle, \tau)}
-                                  \end{aligned} \\[1.5ex]
+    % {\vnosecret {\langle v'', \ell' \rangle} } &
+    %                               \begin{aligned}
+    %                                 &v = \vnosecret {v'}\\
+    %                                 &\wedge \langle v'', \ell' \rangle = {\text{apply-intf}(\langle v', \ell \rangle, \tau)}
+    %                               \end{aligned} \\[1.5ex]
     \text{undefined} & \text{otherwise}
   \end{dcases} \\
 &\quad\text{where } \ell' \triangleq \ell \sqcup \langle \mathrm{public}, \mathrm{tainted} \rangle
 \end{align*}
 
-\begin{align*}
-  &\text{apply-nosecret}(\langle v, \overbrace{\langle \mathrm{public}, \ell_{I} \rangle}^{\ell}\rangle) =
-  \begin{dcases}
-    \langle v, \ell \rangle & v \in \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool} \\
-    \langle \vnosecret v, \ell \rangle & v \in \mathrm{Fun} \cup \mathrm{Mod} \\
-    \begin{aligned}
-      \langle [&\text{apply-nosecret}(\valpair{v}_1),
-      \dots, \\
-      &\text{apply-nosecret}(\valpair{v}_n)
-      ], \ell \rangle
-    \end{aligned}
-    & v = [\valpair{v}_1, \dots , \valpair{v}_n] \\
-    \langle \text{apply-nosecret}(v') : \tau, \ell \rangle & v = v' : \tau \\
-    {\color{red}\langle v, \ell \rangle} & v = \vnosecret v'
-  \end{dcases}
-  \\[2ex]
-  &\text{apply-nosecret}(\langle v, \langle \mathrm{secret}, \ell_{I} \rangle\rangle) = \mathrm{undefined} 
-\end{align*}
+% \begin{align*}
+%   &\text{apply-nosecret}(\langle v, \overbrace{\langle \mathrm{public}, \ell_{I} \rangle}^{\ell}\rangle) =
+%   \begin{dcases}
+%     \langle v, \ell \rangle & v \in \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool} \\
+%     \langle \vnosecret v, \ell \rangle & v \in \mathrm{Fun} \cup \mathrm{Mod} \\
+%     \begin{aligned}
+%       \langle [&\text{apply-nosecret}(\valpair{v}_1),
+%       \dots, \\
+%       &\text{apply-nosecret}(\valpair{v}_n)
+%       ], \ell \rangle
+%     \end{aligned}
+%     & v = [\valpair{v}_1, \dots , \valpair{v}_n] \\
+%     \langle \text{apply-nosecret}(v') : \tau, \ell \rangle & v = v' : \tau \\
+%     {\color{red}\langle v, \ell \rangle} & v = \vnosecret v'
+%   \end{dcases}
+%   \\[2ex]
+%   &\text{apply-nosecret}(\langle v, \langle \mathrm{secret}, \ell_{I} \rangle\rangle) = \mathrm{undefined} 
+% \end{align*}
+
+Initial environment \(\mathrm{plugin} \mapsto 0\)
 
 
 TODO pc in e2 BopRaiseL
