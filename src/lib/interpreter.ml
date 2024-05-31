@@ -157,19 +157,39 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
                            ^ Val.to_string v))
 
   | Let (attrs, ide, expr, body) ->
+      let v1, l1 = match expr with
+        | Exp.TupleField (et, ei) ->
+            eval_tuple_field env pc et ei
+        | _ -> eval_exp env pc expr
+      in
+
       let plugin = Aux.get_plugin_exn env in
-      let v1, l1 = eval_exp env pc expr in
       let l1' = Let_attr.cast_lbl l1 ~to_:attrs ~plugin in
       let env' = Env.bind env ide (v1, l1') in
       let v, l = eval_exp env' pc body in
       (v, Lbl.join pc l)
 
   | LetRec (decls, body) ->
-      (* let xs = Ide.fresh "xs" in *)
+      let xs = Ide.fresh "xs" in
 
-      let fns = List.map decls ~f:(fun (_, x, e) -> Exp.Lam (x, e)) in
+      let wrap e' =
+        let rec aux i = function
+          | [] -> e'
+          | xi :: xs' ->
+            Exp.Let ([], xi, (* TODO mettere attributi? *)
+                     Exp.TupleField (Exp.Var xs,
+                                     Exp.Lit (Val.Int i, Lbl.bot)),
+                     aux (i + 1) xs')
+        in
+        let b = aux 0 (List.map decls ~f:(fun (_, xi, _) -> xi)) in
+        Exp.Lam (xs, b)
+      in
+
+      let fns = List.map decls ~f:(fun (_, _, e) -> wrap e) in
+
       (match eval_exp env pc (Exp.Fixs (Exp.Tuple fns)) with
        | Val.Tuple vs, _ -> (* TODO usare il label? *)
+
            let plugin = Aux.get_plugin_exn env in
            let binds =
              List.map2_exn decls vs ~f:(fun (attrs, x_i, _) (v_i, l_i) ->
@@ -217,27 +237,12 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       let lbl = Lbl.joins (pc :: List.map vals ~f:(fun (_, l) -> l)) in
       (Val.Tuple vals, lbl)
 
-  | TupleField (tuple, index) -> (
-      let tup, lt = eval_exp env pc tuple in
-      let idx, li = eval_exp env pc index in
-      match tup with
-      | Tuple vals -> (
-          match idx with
-          | Val.Int i ->(
-                let v, lbl = List.nth_exn vals i in
-                match v with
-                | Val.Defer (delta', expr) ->
-                    let v, l2 = eval_exp delta' pc expr in
-                    (v, Lbl.joins [ pc; lt; li; lbl; l2 ])
-                | _ -> (v, Lbl.joins [ pc; lt; li; lbl ])
-              )
-          | _ ->
-              failwith
-                ("Trying to access field of tuple with non-integer index: "
-               ^ Val.to_string idx))
-      | _ ->
-          failwith
-            ("Trying to access field of non-tuple value: " ^ Val.to_string tup))
+  | TupleField (et, ei) ->
+      (match eval_tuple_field env pc et ei with
+       | Val.Defer (env', e), l ->
+           let v, l' = eval_exp env' pc e in
+           (v, Lbl.joins [pc; l; l'])
+       | vl -> vl)
 
   | HasAttr (attr, e) ->
       let _, l = eval_exp env pc e in
@@ -255,6 +260,20 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
   | _ ->
       failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
+
+and eval_tuple_field env pc et ei =
+  let vt, lt = eval_exp env pc et in
+  let vi, li = eval_exp env pc ei in
+  (match vt, vi with
+   | Val.Tuple vs, Val.Int i ->
+       let v, l = List.nth_exn vs i in
+       (v, Lbl.joins [ pc; lt; li; l ])
+
+   | Val.Tuple _, v -> failwith ("Tried using non-integer "
+                                 ^ Val.to_string v
+                                 ^ "as tuple index")
+   | v, _ -> failwith ("Tried indexing non-tuple "
+                       ^ Val.to_string v))
 
 let main_env = Aux.set_plugin Env.empty 0
 

@@ -10,7 +10,6 @@ type 'a naked_val = Int of int
                   | TMod of 'a t Env.t
                   | Plugin of 'a t Env.t
                   | ValType of 'a naked_val * Typ.t
-                  | NoSecret of 'a naked_val
 [@@deriving sexp]
 
 and 'a t = 'a naked_val * Lbl.t
