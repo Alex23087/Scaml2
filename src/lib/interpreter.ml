@@ -262,7 +262,23 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
        | _ -> failwith "unreachable (plugin evaluated to non-module)")
 
   | Die -> failwith "Died"
-
+  | Endorse e -> (
+    match Aux.get_trusted_exn env with
+    | true ->  let v, (lc, _) = eval_exp env pc e in (v, (lc, Lbl.Untainted))
+    | false -> failwith "Cannot endorse in untrusted module"
+  )
+  | Declassify e -> (
+    match Aux.get_trusted_exn env with
+    | true -> (let v, (lc, li) = eval_exp env pc e in
+        match Aux.get_plugin_exn env with
+          | 0 -> (v, (Lbl.Public, li)) (* main module can declassify every secret *)
+          | n when n > 0 -> (match lc with
+            | Lbl.Public -> (v, (Lbl.Public, li))
+            | Lbl.Secret i when i = n -> (v, (Lbl.Public, li)) (* plugins can declassify just their secrets *)
+            | _ -> failwith "Cannot declassify a value from another plugin or main module")
+          | _ -> failwith "Impossible negative plugin id")
+    | false -> failwith "Cannot declassify in untrusted module"
+  )
   | _ ->
       failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
