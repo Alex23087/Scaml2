@@ -223,7 +223,7 @@ and parse_atom = function
   | TTrusted :: toks ->
      let toks = expect TModule toks in
      let decls, toks = parse_module toks in
-     (Exp.TruMod decls, toks)
+     (Exp.TrustedModule decls, toks)
 
   | TPlugin :: toks -> parse_plugin toks
 

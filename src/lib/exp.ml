@@ -25,7 +25,7 @@ type t = Var of Ide.t
        | Do of Ide.t * t list
 
        | Module of t Decl.t list
-       | TruMod of t Decl.t list
+       | TrustedModule of t Decl.t list
        | Plugin of string * Intf.t list
 
        | HasAttr of Let_attr.t * t

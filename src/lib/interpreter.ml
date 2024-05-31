@@ -222,6 +222,14 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       | _ ->
           failwith "Impossible! mod_let_desugaring necessarily returns a lambda"
       )
+  | TrustedModule decls -> (
+      let modlet = Aux.mod_let_desugaring decls in
+      let modclosure = eval_exp (Aux.set_trusted env true) pc modlet in
+      match modclosure with
+      | Val.Fun (newenv, _, _), _l -> (Val.Mod (Env.restrict decls newenv), pc)
+      | _ ->
+          failwith "Impossible! mod_let_desugaring necessarily returns a lambda"
+      )
 
   | Print x ->
       let res = eval_exp env pc x in
