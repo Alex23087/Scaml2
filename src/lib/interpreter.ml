@@ -17,6 +17,8 @@ let raise_invalid_uop uop v =
        ^ Sexp.to_string_hum (Uop.sexp_of_t uop)
        ^ " to argument " ^ Val.to_string v))
 
+let next_plugin_id = Util.make_counter 1
+
 let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
     Exp.t Val.t =
   match exp with
@@ -249,8 +251,11 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       (Let_attr.matches_lbl attr l |> Val.Bool, Lbl.join pc l)
 
   | Plugin (fname, intfs) ->
-      let e = Parser.parse_file fname in
-      (match eval_exp Env.empty Lbl.bot e with
+      let plugin_path = Aux.get_path_exn env ^ "/" ^ fname in
+      let e = Parser.parse_file plugin_path in
+      let env = Aux.set_plugin Env.empty (next_plugin_id ()) in
+      let env = Aux.set_path env (Core.Filename.dirname plugin_path) in
+      (match eval_exp env Lbl.bot e with
        | Val.Mod env, l ->
            (Val.Plugin (Aux.restrict_to_intfs env intfs),
             Lbl.join pc l)
@@ -267,7 +272,7 @@ and eval_tuple_field env pc et ei =
   (match vt, vi with
    | Val.Tuple vs, Val.Int i ->
        let v, l = List.nth_exn vs i in
-       (v, Lbl.joins [ pc; lt; li; l ])
+       (v, Lbl.joins [pc; lt; li; l])
 
    | Val.Tuple _, v -> failwith ("Tried using non-integer "
                                  ^ Val.to_string v
@@ -275,6 +280,8 @@ and eval_tuple_field env pc et ei =
    | v, _ -> failwith ("Tried indexing non-tuple "
                        ^ Val.to_string v))
 
-let main_env = Aux.set_plugin Env.empty 0
+let env = Aux.set_plugin Env.empty 0
+let env = Aux.set_trusted env false
+let env = Aux.set_path env "."
 
-let eval = eval_exp main_env Lbl.bot
+let eval = eval_exp env Lbl.bot

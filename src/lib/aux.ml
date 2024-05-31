@@ -23,19 +23,27 @@ let restrict_to_intfs (env : 'a Env.t) (intfs : Intf.t list) : 'a Env.t =
 
 let plugin_ide = Ide.of_string "@plugin"
 let trusted_ide = Ide.of_string "@trusted"
+let path_ide = Ide.of_string "@path"
 
-let set_plugin env p = Env.bind env plugin_ide (Val.Int p, Lbl.bot)
-let set_trusted env t = Env.bind env trusted_ide (Val.Bool t, Lbl.bot)
+let set_plugin env x = Env.bind env plugin_ide (Val.Int x, Lbl.bot)
+let set_trusted env x = Env.bind env trusted_ide (Val.Bool x, Lbl.bot)
+let set_path env x = Env.bind env path_ide (Val.String x, Lbl.bot)
 
 let get_plugin_exn env =
   let p = Env.lookup_exn env plugin_ide in
   match p with
-  | Val.Int p, _ -> p
+  | Val.Int x, _ -> x
   | _ -> failwith (Ide.to_string plugin_ide ^ " bound to non-integer value")
 
 let get_trusted_exn env =
   let p = Env.lookup_exn env trusted_ide in
   match p with
-  | Val.Bool t, _ -> t
+  | Val.Bool x, _ -> x
   | _ -> failwith (Ide.to_string trusted_ide ^ " bound to non-boolean value")
+
+let get_path_exn env =
+  let p = Env.lookup_exn env path_ide in
+  match p with
+  | Val.String x, _ -> x
+  | _ -> failwith (Ide.to_string path_ide ^ " bound to non-string value")
 

@@ -15,6 +15,7 @@ depends: [
   "base"
   "stdio"
   "ppx_jane"
+  "core"
   "odoc" {with-doc}
 ]
 build: [
