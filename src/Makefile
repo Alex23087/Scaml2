@@ -53,6 +53,6 @@ test-interpreter: test-interpreter-normal test-interpreter-except
 setup:
 	opam update
 	opam upgrade
-	opam install dune ppx_jane
+	opam install dune ppx_jane core
 
 .PHONY: build test test-interpreter test-interpreter-normal test-interpreter-except test-rerun doc docopen setup
