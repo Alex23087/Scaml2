@@ -106,46 +106,55 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
   | Lam (ide, body) -> (Val.Fun (env, ide, body), pc)
 
-  | Fix expr -> (
+  | Fix expr ->
       let closure, l = eval_exp env pc expr in
-      match closure with
-      | Fun (clenv, ide, body) ->
-          let newenv =
-            Env.bind clenv ide
-              (Val.Defer (clenv, Exp.Fix (Exp.Lam (ide, body))), l)
-          in
-          let v, l' = eval_exp newenv (Lbl.join pc l) body in
-          (v, Lbl.joins [ pc; l; l' ])
-      | _ ->
-          failwith
-            ("Applying fixpoint to non function value: " ^ Val.to_string closure)
-      )
+      (match closure with
+       | Fun (clenv, ide, body) ->
+           let newenv =
+             Env.bind clenv ide
+               (Val.Defer (clenv, Exp.Fix (Exp.Lam (ide, body))), l)
+           in
+           let v, l' = eval_exp newenv (Lbl.join pc l) body in
+           (v, Lbl.joins [ pc; l; l' ])
+       | _ ->
+           failwith
+             ("Applying fixpoint to non function value: " ^ Val.to_string closure))
 
-  | Fixs expr -> (
-      let tuplexpr, l = eval_exp env pc expr in
-      match tuplexpr with
-      | Tuple closures ->
-          let tied_closures : Exp.t Val.t list =
-            List.map closures ~f:(fun (closure, l') ->
-                match closure with
-                | Fun (clenv, ide, body) ->
-                    let newenv =
-                      Env.bind clenv ide (Val.Defer (clenv, Exp.Fixs expr), l')
-                    in
-                    let v, l'' = eval_exp newenv (Lbl.join pc l') body in
-                    (v, Lbl.joins [ pc; l'; l'' ])
-                | _ ->
-                    failwith
-                      ("Applying fixpoint to non function value: "
-                     ^ Val.to_string closure))
-          in
-          let lbl =
-            Lbl.joins (l :: List.map tied_closures ~f:(fun (_, l) -> l))
-          in
-          (Val.Tuple tied_closures, lbl)
-      | _ ->
-          failwith
-            ("Applying fixpoint to non tuple value: " ^ Val.to_string tuplexpr))
+  | Fixs e ->
+      (match eval_exp env pc e with
+       | Tuple fs, l ->
+           let n = List.length fs in
+           let ys = Ide.fresh_list "y" n in
+           let env'' = List.zip_exn ys fs |> Env.bind_all env in
+           let es =
+             List.map fs ~f:(function
+                 | Fun (envi', x, ei'), li ->
+                     let ys_exp = List.map ys ~f:(fun y -> Exp.Var y) in
+                     let defer_tuple =
+                       (Val.Tuple (
+                            List.mapi fs ~f:(fun j (_, lj) ->
+                                (Val.Defer
+                                   (env'',
+                                    Exp.TupleField
+                                      (Exp.Fixs (Exp.Tuple ys_exp),
+                                       Exp.Lit (Val.Int j, Lbl.bot))),
+                                 lj))),
+                        li)
+                     in
+                     eval_exp
+                       (Env.bind envi' x defer_tuple)
+                       (Lbl.join pc li)
+                       ei'
+
+                 | v, _ -> failwith ("Applying fixpoint to non function value: "
+                                     ^ Val.to_string v))
+           in
+           let _, ls = List.unzip fs in
+           let _, ls' = List.unzip es in
+           (Val.Tuple es, Lbl.joins (pc :: l :: ls @ ls'))
+
+       | v, _ -> failwith ("Applying fix* to non tuple value: "
+                           ^ Val.to_string v))
 
   | Let (attrs, ide, expr, body) ->
       let plugin = Aux.get_plugin_exn env in
@@ -156,6 +165,8 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       (v, Lbl.join pc l)
 
   | LetRec (decls, body) ->
+      (* let xs = Ide.fresh "xs" in *)
+
       let fns = List.map decls ~f:(fun (_, x, e) -> Exp.Lam (x, e)) in
       (match eval_exp env pc (Exp.Fixs (Exp.Tuple fns)) with
        | Val.Tuple vs, _ -> (* TODO usare il label? *)
