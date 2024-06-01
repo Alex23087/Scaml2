@@ -35,6 +35,9 @@ type t = Var of Ide.t
        | Assert of t
 
        | Print of t
+       | GetInt
+       | GetString
+       | GetBool
 
        | Die
 [@@deriving sexp]

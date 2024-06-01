@@ -294,6 +294,23 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       | Val.Bool false -> failwith ("Assertion " ^ (Exp.exp_to_string e) ^ " failed")
       | _ -> failwith "Nonboolean guard in assertion"
   )
+  | GetString -> (
+    let input = Stdio.In_channel.input_line Stdio.stdin |> Option.value_exn in
+    let (lc, _) = pc in
+    (Val.String input, (lc, Lbl.Tainted))
+  )
+  | GetInt -> (
+    let input = Stdio.In_channel.input_line Stdio.stdin |> Option.value_exn in
+    let int = Int.of_string input in
+    let (lc, _) = pc in
+    (Val.Int int, (lc, Lbl.Tainted))
+  )
+  | GetBool -> (
+    let input = Stdio.In_channel.input_line Stdio.stdin |> Option.value_exn in
+    let bool = Bool.of_string input in
+    let (lc, _) = pc in
+    (Val.Bool bool, (lc, Lbl.Tainted))
+  )
   | _ ->
       failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
@@ -314,5 +331,10 @@ and eval_tuple_field env pc et ei =
 let env = Aux.set_plugin Env.empty 0
 let env = Aux.set_trusted env false
 let env = Aux.set_path env "."
+let env = Env.bind_all env [
+  (Ide.of_string "get_string", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetString), Lbl.bot));
+  (Ide.of_string "get_int", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetInt), Lbl.bot));
+  (Ide.of_string "get_bool", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetBool), Lbl.bot))
+]
 
 let eval = eval_exp env Lbl.bot
