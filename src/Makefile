@@ -12,6 +12,12 @@ test-rerun:
 test-parser: build
 	_build/default/bin/main.exe test/syntax.scaml
 
+exec_program:
+	_build/default/bin/main_interpreter.exe test/interpreter/normalexec/$(file).scaml
+
+exec_except_program:
+	_build/default/bin/main_interpreter.exe test/interpreter/except/$(file).scaml
+
 test-interpreter-normal: build
 	@COUNT=$$(ls -1 test/interpreter/normalexec/*.scaml | wc -l) ;\
 	CURRENT=0 ;\
