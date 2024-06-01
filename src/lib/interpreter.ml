@@ -1,4 +1,5 @@
 open Base
+open Stdio
 
 exception InvalidBop of string
 exception InvalidUop of string
@@ -246,7 +247,9 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
          |> Sexp.to_string_hum
          |> Stdio.print_endline; *)
       (match res with
-      | res, (Public, _) -> res |> Val.to_string |> Stdio.print_string
+       | res, (Public, _) ->
+           Out_channel.print_string (Val.to_string res);
+           Out_channel.flush stdout
       | _ -> raise Lbl.SecurityException);
       res
 
@@ -305,18 +308,18 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       | _ -> failwith "Nonboolean guard in assertion"
   )
   | GetString -> (
-    let input = Stdio.In_channel.input_line Stdio.stdin |> Option.value_exn in
+    let input = In_channel.input_line Stdio.stdin |> Option.value_exn in
     let (lc, _) = pc in
     (Val.String input, (lc, Lbl.Tainted))
   )
   | GetInt -> (
-    let input = Stdio.In_channel.input_line Stdio.stdin |> Option.value_exn in
+    let input = In_channel.input_line Stdio.stdin |> Option.value_exn in
     let int = Int.of_string input in
     let (lc, _) = pc in
     (Val.Int int, (lc, Lbl.Tainted))
   )
   | GetBool -> (
-    let input = Stdio.In_channel.input_line Stdio.stdin |> Option.value_exn in
+    let input = In_channel.input_line Stdio.stdin |> Option.value_exn in
     let bool = Bool.of_string input in
     let (lc, _) = pc in
     (Val.Bool bool, (lc, Lbl.Tainted))
