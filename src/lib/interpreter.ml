@@ -287,6 +287,13 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
           | _ -> failwith "Impossible negative plugin id")
     | false -> failwith "Cannot declassify in untrusted module"
   )
+  | Assert e -> (
+    let v, l = eval_exp env pc e in
+      match v with
+      | Val.Bool true -> (Val.Tuple([]), l)
+      | Val.Bool false -> failwith ("Assertion " ^ (Exp.exp_to_string e) ^ " failed")
+      | _ -> failwith "Nonboolean guard in assertion"
+  )
   | _ ->
       failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 

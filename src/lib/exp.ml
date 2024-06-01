@@ -32,11 +32,19 @@ type t = Var of Ide.t
        | Endorse of t
        | Declassify of t
 
+       | Assert of t
+
        | Print of t
 
        | Die
 [@@deriving sexp]
 
+let exp_to_string exp =
+  let buffer = Buffer.create 256 in
+  let formatter =  Stdlib.Format.formatter_of_buffer buffer in
+  Sexp.pp_hum formatter (sexp_of_t exp);
+  Stdlib.Format.pp_print_flush formatter ();
+  Buffer.contents buffer
 (*
 let wrap s = "(" ^ s ^ ")"
 
