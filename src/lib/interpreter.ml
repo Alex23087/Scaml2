@@ -19,6 +19,15 @@ let raise_invalid_uop uop v =
 
 let next_plugin_id = Util.make_counter 1
 
+let init_env =
+  let env = Aux.set_plugin Env.empty 0 in
+  let env = Aux.set_trusted env false in
+  let env = Aux.set_path env "." in
+  Env.bind_all env
+    [(Ide.of_string "get_string", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetString), Lbl.bot));
+     (Ide.of_string "get_int", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetInt), Lbl.bot));
+     (Ide.of_string "get_bool", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetBool), Lbl.bot))]
+
 let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
     Exp.t Val.t =
   match exp with
@@ -214,22 +223,21 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       in
       (resv, Lbl.joins [ pc; lc; resl ])
 
-  | Module decls -> (
+  | Module decls ->
       let modlet = Aux.mod_let_desugaring decls in
-      let modclosure = eval_exp env pc modlet in
-      match modclosure with
+      let modclosure = eval_exp (Aux.set_trusted env false) pc modlet in
+      (match modclosure with
       | Val.Fun (newenv, _, _), _l -> (Val.Mod (Env.restrict decls newenv), pc)
       | _ ->
-          failwith "Impossible! mod_let_desugaring necessarily returns a lambda"
-      )
-  | TrustedModule decls -> (
+          failwith "Impossible! mod_let_desugaring necessarily returns a lambda")
+
+  | TrustedModule decls ->
       let modlet = Aux.mod_let_desugaring decls in
       let modclosure = eval_exp (Aux.set_trusted env true) pc modlet in
-      match modclosure with
+      (match modclosure with
       | Val.Fun (newenv, _, _), _l -> (Val.Mod (Env.restrict decls newenv), pc)
       | _ ->
-          failwith "Impossible! mod_let_desugaring necessarily returns a lambda"
-      )
+          failwith "Impossible! mod_let_desugaring necessarily returns a lambda")
 
   | Print x ->
       let res = eval_exp env pc x in
@@ -261,7 +269,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
   | Plugin (fname, intfs) ->
       let plugin_path = Aux.get_path_exn env ^ "/" ^ fname in
       let e = Parser.parse_file plugin_path in
-      let env = Aux.set_plugin Env.empty (next_plugin_id ()) in
+      let env = Aux.set_plugin init_env (next_plugin_id ()) in
       let env = Aux.set_path env (Core.Filename.dirname plugin_path) in
       (match eval_exp env Lbl.bot e with
        | Val.Mod env, l ->
@@ -270,23 +278,25 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
        | _ -> failwith "unreachable (plugin evaluated to non-module)")
 
   | Die -> failwith "Died"
-  | Endorse e -> (
-    match Aux.get_trusted_exn env with
-    | true ->  let v, (lc, _) = eval_exp env pc e in (v, (lc, Lbl.Untainted))
-    | false -> failwith "Cannot endorse in untrusted module"
-  )
-  | Declassify e -> (
-    match Aux.get_trusted_exn env with
-    | true -> (let v, (lc, li) = eval_exp env pc e in
-        match Aux.get_plugin_exn env with
-          | 0 -> (v, (Lbl.Public, li)) (* main module can declassify every secret *)
-          | n when n > 0 -> (match lc with
-            | Lbl.Public -> (v, (Lbl.Public, li))
-            | Lbl.Secret i when i = n -> (v, (Lbl.Public, li)) (* plugins can declassify just their secrets *)
-            | _ -> failwith "Cannot declassify a value from another plugin or main module")
-          | _ -> failwith "Impossible negative plugin id")
-    | false -> failwith "Cannot declassify in untrusted module"
-  )
+
+  | Endorse e ->
+      let v, (lc, _) = eval_exp env pc e in
+      if Aux.get_trusted_exn env
+      then  (v, (lc, Lbl.Untainted))
+      else failwith "Cannot endorse in untrusted module"
+
+  | Declassify e ->
+      let v, (lc, li) = eval_exp env pc e in
+      let res = v, (Lbl.Public, li) in
+
+      if Aux.get_trusted_exn env then
+        match lc, Aux.get_plugin_exn env with
+        | Public, _ -> res
+        | Secret p, q when p = q || q = 0 -> res
+        | _ -> failwith "Cannot declassify a value from another plugin or main module"
+
+      else failwith "Cannot declassify in untrusted module"
+
   | Assert e -> (
     let v, l = eval_exp env pc e in
       match v with
@@ -328,13 +338,5 @@ and eval_tuple_field env pc et ei =
    | v, _ -> failwith ("Tried indexing non-tuple "
                        ^ Val.to_string v))
 
-let env = Aux.set_plugin Env.empty 0
-let env = Aux.set_trusted env false
-let env = Aux.set_path env "."
-let env = Env.bind_all env [
-  (Ide.of_string "get_string", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetString), Lbl.bot));
-  (Ide.of_string "get_int", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetInt), Lbl.bot));
-  (Ide.of_string "get_bool", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetBool), Lbl.bot))
-]
 
-let eval = eval_exp env Lbl.bot
+let eval = eval_exp init_env Lbl.bot
