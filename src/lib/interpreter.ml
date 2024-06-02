@@ -187,20 +187,20 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       let wrap e' =
         let rec aux i = function
           | [] -> e'
-          | xi :: xs' ->
-            Exp.Let ([], xi, (* TODO mettere attributi? *)
+          | (attrsi, xi) :: xs' ->
+            Exp.Let (attrsi, xi,
                      Exp.TupleField (Exp.Var xs,
                                      Exp.Lit (Val.Int i, Lbl.bot)),
                      aux (i + 1) xs')
         in
-        let b = aux 0 (List.map decls ~f:(fun (_, xi, _) -> xi)) in
+        let b = aux 0 (List.map decls ~f:(fun (attrsi, xi, _) -> (attrsi, xi))) in
         Exp.Lam (xs, b)
       in
 
       let fns = List.map decls ~f:(fun (_, _, e) -> wrap e) in
 
       (match eval_exp env pc (Exp.Fixs (Exp.Tuple fns)) with
-       | Val.Tuple vs, _ -> (* TODO usare il label? *)
+       | Val.Tuple vs, l ->
 
            let plugin = Aux.get_plugin_exn env in
            let binds =
@@ -209,7 +209,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
            in
            let env' = Env.bind_all env binds in
            let v, l' = eval_exp env' pc body in
-           (v, Lbl.join pc l')
+           (v, Lbl.joins [l; pc; l'])
 
        | _ -> failwith "fix* didn't return a tuple")
 

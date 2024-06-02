@@ -2,7 +2,8 @@ open Base
 
 let rec mod_let_desugaring (decls: Exp.t Decl.t Base.list): Exp.t =
   match decls with
-  | [] -> Exp.Lam (Ide.of_string "x", Exp.Var (Ide.of_string "x")) (* TODO: Fresh ide probably not necessary, since we discard it and return the closure environment. Check *)
+  (* Fresh ide probably not necessary since we discard it and return the closure environment *)
+  | [] -> let x = Ide.fresh "x" in Exp.Lam (x, Exp.Var x)
   | e::ds ->
        (match e with
         | Decl.Let (attrs, ide, exp) ->
@@ -46,4 +47,3 @@ let get_path_exn env =
   match p with
   | Val.String x, _ -> x
   | _ -> failwith (Ide.to_string path_ide ^ " bound to non-string value")
-
