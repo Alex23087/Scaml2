@@ -106,15 +106,27 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       | Minus, Int i -> (Int (-i), Lbl.join pc l)
       | _ -> raise_invalid_uop uop v)
 
-  | App (funexp, argexp) -> (
-      let closure, lf = eval_exp env pc funexp in
-      let param = eval_exp env pc argexp in
-      match closure with
-      | Fun (clenv, ide, body) ->
-          let newenv = Env.bind clenv ide param in
-          let u, lu = eval_exp newenv (Lbl.join pc lf) body in
-          (u, Lbl.joins [ pc; lf; lu ])
-      | _ -> failwith ("Applying non function value: " ^ Val.to_string closure))
+  | App (funexp, argexp) ->
+      let f, lf = eval_exp env pc funexp in
+      let v = eval_exp env pc argexp in
+
+      let apply env' x e v =
+        let env'' = Env.bind env' x v in
+        let u, lu = eval_exp env'' (Lbl.join pc lf) e in
+        (u, Lbl.joins [ pc; lf; lu ])
+      in
+
+      (match f with
+       | Fun (env', x, e) -> apply env' x e v
+
+       | ValType (Fun (env', x, e), Typ.Fun (t1, t2)) ->
+           let v' = Val.apply_intf v t1 in
+           let u = apply env' x e v' in
+           let u', lu' = Val.apply_intf u t2 in
+           (u', Lbl.joins [pc; lf; lu'])
+
+       | _ -> failwith ("Applying non function value: "
+                        ^ Val.to_string f))
 
   | Lam (ide, body) -> (Val.Fun (env, ide, body), pc)
 
