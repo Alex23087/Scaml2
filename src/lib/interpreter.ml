@@ -20,10 +20,10 @@ let raise_invalid_uop uop v =
 
 let next_plugin_id = Util.make_counter 1
 
-let init_env =
+let init_env path =
   let env = Aux.set_plugin Env.empty 0 in
   let env = Aux.set_trusted env false in
-  let env = Aux.set_path env "." in
+  let env = Aux.set_path env path in
   Env.bind_all env
     [(Ide.of_string "get_string", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetString), Lbl.bot));
      (Ide.of_string "get_int", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetInt), Lbl.bot));
@@ -272,8 +272,8 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
   | Plugin (fname, intfs) ->
       let plugin_path = Aux.get_path_exn env ^ "/" ^ fname in
       let e = Parser.parse_file plugin_path in
-      let env = Aux.set_plugin init_env (next_plugin_id ()) in
-      let env = Aux.set_path env (Core.Filename.dirname plugin_path) in
+      let env = init_env (Core.Filename.dirname plugin_path) in
+      let env = Aux.set_plugin env (next_plugin_id ()) in
       (match eval_exp env Lbl.bot e with
        | Val.Mod env, l ->
            (Val.Plugin (Aux.restrict_to_intfs env intfs),
@@ -342,4 +342,4 @@ and eval_tuple_field env pc et ei =
                        ^ Val.to_string v))
 
 
-let eval = eval_exp init_env Lbl.bot
+let eval path = eval_exp (init_env path) Lbl.bot
