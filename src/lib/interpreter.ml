@@ -205,14 +205,16 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
                                      Exp.Lit (Val.Int i, Lbl.bot)),
                      aux (i + 1) xs')
         in
-        let b = aux 0 (List.map decls ~f:(fun (attrsi, xi, _) -> (attrsi, xi))) in
+        let b = aux 0 (List.map decls ~f:(fun (attrsi, xi, _) ->
+                           (attrsi, xi)))
+        in
         Exp.Lam (xs, b)
       in
 
       let fns = List.map decls ~f:(fun (_, _, e) -> wrap e) in
 
       (match eval_exp env pc (Exp.Fixs (Exp.Tuple fns)) with
-       | Val.Tuple vs, l ->
+       | Val.Tuple vs, _ ->
 
            let plugin = Aux.get_plugin_exn env in
            let binds =
@@ -221,7 +223,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
            in
            let env' = Env.bind_all env binds in
            let v, l' = eval_exp env' pc body in
-           (v, Lbl.joins [l; pc; l'])
+           (v, Lbl.join pc l')
 
        | _ -> failwith "fix* didn't return a tuple")
 
@@ -253,17 +255,14 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
           failwith "Impossible! mod_let_desugaring necessarily returns a lambda")
 
   | Print x ->
-      let res = eval_exp env pc x in
-      (* res
-         |> Val.sexp_of_t (Exp.sexp_of_t)
-         |> Sexp.to_string_hum
-         |> Stdio.print_endline; *)
-      (match res with
-       | res, (Public, _) ->
-           Out_channel.print_string (Val.to_string res);
+      let v, l = eval_exp env pc x in
+      let l' = Lbl.join pc l in
+      (match l' with
+       | Public, _ ->
+           Out_channel.print_string (Val.to_string v);
            Out_channel.flush stdout
-      | _ -> raise Lbl.SecurityException);
-      res
+       | _ -> raise Lbl.SecurityException);
+      v, l'
 
   | Tuple exprs ->
       let vals = List.map exprs ~f:(fun e -> eval_exp env pc e) in
@@ -294,12 +293,6 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
   | Die -> failwith "Died"
 
-  | Endorse e ->
-      let v, (lc, _) = eval_exp env pc e in
-      if Aux.get_trusted_exn env
-      then  (v, (lc, Lbl.Untainted))
-      else failwith "Cannot endorse in untrusted module"
-
   | Declassify e ->
       let v, (lc, li) = eval_exp env pc e in
       let res = v, (Lbl.Public, li) in
@@ -312,13 +305,41 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
 
       else failwith "Cannot declassify in untrusted module"
 
-  | Assert e -> (
+  | Endorse e ->
+      let v, (lc, _) = eval_exp env pc e in
+      if Aux.get_trusted_exn env
+      then  (v, (lc, Lbl.Untainted))
+      else failwith "Cannot endorse in untrusted module"
+
+  | DeclassifyPC e ->
+      let pc_c, pc_i = pc in
+
+      (if Aux.get_trusted_exn env then
+         match pc_c, Aux.get_plugin_exn env with
+         | Public, _ -> ()
+         | Secret p, q when p = q || q = 0 -> ()
+         | _ -> failwith "Cannot declassify secret PC from another plugin or main module"
+       else failwith "Cannot declassify in untrusted module");
+
+      let v, (lc, li) = eval_exp env (Lbl.Public, pc_i) e in
+      (v, (lc, Lbl.intg_join pc_i li))
+
+  | EndorsePC e ->
+      if Aux.get_trusted_exn env then
+        let pc_c, _ = pc in
+        let v, (lc, li) = eval_exp env (pc_c, Lbl.Untainted) e in
+        (v, (Lbl.conf_join pc_c lc, li))
+
+      else
+        failwith "Cannot endorse in untrusted module"
+
+  | Assert e ->
     let v, l = eval_exp env pc e in
-      match v with
-      | Val.Bool true -> (Val.Tuple([]), l)
+    (match v with
+      | Val.Bool true -> (Val.Bool true, Lbl.join pc l)
       | Val.Bool false -> failwith ("Assertion " ^ (Exp.exp_to_string e) ^ " failed")
-      | _ -> failwith "Nonboolean guard in assertion"
-  )
+      | _ -> failwith "Nonboolean guard in assertion")
+
   | GetString -> (
     let input = In_channel.input_line Stdio.stdin |> Option.value_exn in
     let (lc, _) = pc in
@@ -336,8 +357,10 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
     let (lc, _) = pc in
     (Val.Bool bool, (lc, Lbl.Tainted))
   )
-  | _ ->
-      failwith ("Not implemented: " ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
+
+  | Handle _ | Do _ ->
+      failwith ("Not implemented: "
+                ^ (Exp.sexp_of_t exp |> Sexp.to_string_hum))
 
 and eval_tuple_field env pc et ei =
   let vt, lt = eval_exp env pc et in

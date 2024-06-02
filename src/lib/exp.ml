@@ -29,8 +29,8 @@ type t = Var of Ide.t
        | Plugin of string * Intf.t list
 
        | HasAttr of Let_attr.t * t
-       | Endorse of t
-       | Declassify of t
+       | Declassify of t | Endorse of t
+       | DeclassifyPC of t | EndorsePC of t
 
        | Assert of t
 

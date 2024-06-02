@@ -28,8 +28,8 @@ type token = TIde of Ide.t
            | TIf | TThen | TElse | TEnd
            | TWith | THandle | TDo
            | TModule | TTrusted | TPlugin | TExport
-           | THasAttr | TDeclassify | TEndorse
-           | TPrint | TDie
+           | THasAttr | TDeclassify | TEndorse | TDeclassifyPC | TEndorsePC
+           | TPrint | TDie | TAssert
 
            (* types *)
            | TTint | TTstring | TTbool | TArrow | TAny
@@ -101,11 +101,14 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                  ("export", Tok TExport);
 
                  ("has_attr", Tok THasAttr);
-                 ("declassify", Tok TDeclassify );
+                 ("declassify_pc", Tok TDeclassifyPC);
+                 ("endorse_pc", Tok TEndorsePC);
+                 ("declassify", Tok TDeclassify);
                  ("endorse", Tok TEndorse);
 
                  ("print", Tok TPrint);
                  ("die", Tok TDie);
+                 ("assert", Tok TAssert);
 
                  ("public", Tok (TLetAttr Public));
                  ("secret", Tok (TLetAttr Secret));

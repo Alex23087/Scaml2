@@ -156,6 +156,12 @@ and parse_app_like = function
      let e, toks = parse_field_access toks in (Exp.Declassify e, toks)
   | TEndorse :: toks ->
      let e, toks = parse_field_access toks in (Exp.Endorse e, toks)
+  | TDeclassifyPC :: toks ->
+     let e, toks = parse_field_access toks in (Exp.DeclassifyPC e, toks)
+  | TEndorsePC :: toks ->
+     let e, toks = parse_field_access toks in (Exp.EndorsePC e, toks)
+  | TAssert :: toks ->
+     let e, toks = parse_field_access toks in (Exp.Assert e, toks)
 
   | TDo :: toks -> parse_do toks
 
