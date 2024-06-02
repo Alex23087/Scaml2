@@ -121,6 +121,8 @@
 \newcommand*{\sdeclassifypc}[1]{\texttt{declassify\_pc}~#1}
 \newcommand*{\sendorsepc}[1]{\texttt{endorse\_pc}~#1}
 
+\newcommand*{\scaml}{ScaML$^{2}$\xspace}
+
 \definecolor{grigio}{rgb}{0.9, 0.9, 0.9}
 
 \title{LBTS project report}
@@ -132,16 +134,25 @@
 
 \section{Syntax}
 
+\phantom{\footnote{}}\! The syntax of ScaML\footnote{From the names of its authors}
+is inspired by OCaml. Some notable differences include:
+\begin{itemize}
+\item \texttt{let} bindings accept a list of attributes, like \texttt{public} or \texttt{tainted};
+\item operators for endorsing and declassifying values;
+\item assertions and predicates on attributes of values;
+\item plugins, with dynamically checked interfaces.
+\end{itemize}
+
 \begin{grammar}
   e \is x \alt v \alt e.x \alt \texttt{(} e \texttt{)}
   \altnl e~\mathit{bop}~e \alt \mathit{uop}~e
   \alt \stuple{e \scomma \dots \scomma e} \alt \sproj e e
   \altnl e~e \alt \slam x e \alt \sfix e \alt \sfixs e\alt \mathit{let}
   \altnl \sif e e e
-  \altnl \shandle h e \alt \sdo {\mathit{op}} {e*}
+  \altnl \shandle h e \alt \sdo {\mathit{op}} {e*} %HAND
   \altnl \smodule {d{*}} \alt \strusted {d{*}} \alt \splugin s {\mathit{intf}{*}}
   \altnl \sdie e \alt \sassert e \alt \spredicate {\mathit{attr}} e
-  \altnl \sdeclassify e \alt \sendorse e
+  \altnl \sdeclassify e \alt \sendorse e \alt \sdeclassifypc e \alt \sendorsepc e
   \altnl \sprint e \alt \sget
   \\
   \\
@@ -159,7 +170,7 @@
   \altnl \sexport x
   \\
   \\
-  h \is \texttt{\{} (\mathit{op}~x+ = e\texttt{,}){*}~\texttt{return}~x = e \texttt{\}}
+  h \is \texttt{\{} (\mathit{op}~x+ = e\texttt{,}){*}~\texttt{return}~x = e \texttt{\}} %HAND
   \\
   \\
   v \isin \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool}
@@ -174,9 +185,6 @@
   \\
   \tau \is \stany \alt \stint \alt \ststring \alt \stbool \alt \stfun \tau \tau \alt \stuple{\tau \scomma \dots \scomma \tau} \alt \texttt{(} \tau \texttt{)}
 \end{grammar}
-
-
-The surface syntax has ; let and forse rec boh zucchero per le funzioni let, return non obbligatorio
 
 \section{Operational semantics}
 
@@ -193,35 +201,37 @@ The surface syntax has ; let and forse rec boh zucchero per le funzioni let, ret
 %     \arrow[no head, from=5-2, to=3-3]
 %   \end{tikzcd}\]
 
-Values are tagged with labels, which belong to a lattice \(L\). \(L\) is itself
-the product of the confidentiality and integrity lattices, \(I\) and \(C\), as
-follows:
-% https://q.uiver.app/#q=WzAsOSxbMSwzLCJcXG1hdGhybXtwdWJsaWN9Il0sWzAsMiwiXFxtYXRocm17c2VjcmV0fV4xX3t9Il0sWzEsMiwiXFxtYXRocm17c2VjcmV0fV5uIl0sWzEsMSwiXFxtYXRocm17c2VjcmV0fV4wIl0sWzEsMCwiQyJdLFszLDAsIkkiXSxbMywxLCJcXG1hdGhybXt0YWludGVkfSJdLFszLDMsIlxcbWF0aHJte3VudGFpbnRlZH0iXSxbMiwyLCJcXHBoYW50b217XFxtYXRocm17c2VjcmV0fV4xX3t9fSJdLFswLDEsIiIsMCx7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMSwzLCIiLDAseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzIsMywiIiwyLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFswLDIsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMSwyLCJcXGNkb3RzIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoibm9uZSJ9LCJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzYsN10sWzAsOCwiIiwyLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFs4LDMsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMiw4LCJcXGNkb3RzIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoibm9uZSJ9LCJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzgsMTQsIlxcdGltZXMiLDEseyJsYWJlbF9wb3NpdGlvbiI6MCwic2hvcnRlbiI6eyJ0YXJnZXQiOjIwfSwic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoibm9uZSJ9LCJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzksMTIsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMTIsMTUsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMTAsMTEsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMTYsMTEsIlxcY2RvdHMiLDMseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XV0=
+Values are tagged with labels, which belong to a lattice Lbl. Lbl is itself
+the product of the confidentiality and integrity lattices, \(I\) and \(C\), defined by the following Hasse diagrams:
+% https://q.uiver.app/#q=WzAsOSxbMSwzLCJcXG1hdGhybXtwdWJsaWN9Il0sWzAsMiwiXFxtYXRocm17c2VjcmV0fV4xX3t9Il0sWzEsMiwiXFxtYXRocm17c2VjcmV0fV4yIl0sWzEsMSwiXFxtYXRocm17c2VjcmV0fV4wIl0sWzEsMCwiQyJdLFs0LDAsIkkiXSxbNCwxLCJcXG1hdGhybXt0YWludGVkfSJdLFs0LDMsIlxcbWF0aHJte3VudGFpbnRlZH0iXSxbMiwyLCJcXG1hdGhybXtzZWNyZXR9Xm4iXSxbMCwxLCIiLDAseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzEsMywiIiwwLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFsyLDMsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMCwyLCIiLDIseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzYsNywiIiwwLHsic3R5bGUiOnsiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFswLDgsIiIsMix7InN0eWxlIjp7ImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbOCwzLCIiLDIseyJzdHlsZSI6eyJoZWFkIjp7Im5hbWUiOiJub25lIn19fV0sWzIsOCwiXFxjZG90cyIsMSx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6Im5vbmUifSwiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dLFs4LDEzLCJcXHRpbWVzIiwxLHsibGFiZWxfcG9zaXRpb24iOjQwLCJzaG9ydGVuIjp7InRhcmdldCI6MjB9LCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJub25lIn0sImhlYWQiOnsibmFtZSI6Im5vbmUifX19XSxbMTAsMTEsIiIsMyx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH0sInN0eWxlIjp7ImJvZHkiOnsibmFtZSI6Im5vbmUifSwiaGVhZCI6eyJuYW1lIjoibm9uZSJ9fX1dXQ==
 \[\begin{tikzcd}
-	& C && I \\
-	& {\mathrm{secret}^0} && {\mathrm{tainted}} \\
-	{\mathrm{secret}^1_{}} & {\mathrm{secret}^n} & {\phantom{\mathrm{secret}^1_{}}} \\
-	& {\mathrm{public}} && {\mathrm{untainted}}
-	\arrow[""{name=0, anchor=center, inner sep=0}, from=2-4, to=4-4]
+	& C &&& I \\
+	& {\mathrm{secret}^0} &&& {\mathrm{tainted}} \\
+	{\mathrm{secret}^1_{}} & {\mathrm{secret}^2} & {\mathrm{secret}^n} \\
+	& {\mathrm{public}} &&& {\mathrm{untainted}}
+	\arrow[""{name=0, anchor=center, inner sep=0}, no head, from=2-5, to=4-5]
 	\arrow[""{name=1, anchor=center, inner sep=0}, no head, from=3-1, to=2-2]
-	\arrow["\cdots"{description}, draw=none, from=3-1, to=3-2]
 	\arrow[""{name=2, anchor=center, inner sep=0}, no head, from=3-2, to=2-2]
 	\arrow["\cdots"{description}, draw=none, from=3-2, to=3-3]
-	\arrow[""{name=3, anchor=center, inner sep=0}, no head, from=3-3, to=2-2]
-	\arrow[""{name=4, anchor=center, inner sep=0}, no head, from=4-2, to=3-1]
-	\arrow[""{name=5, anchor=center, inner sep=0}, no head, from=4-2, to=3-2]
-	\arrow[""{name=6, anchor=center, inner sep=0}, no head, from=4-2, to=3-3]
-	\arrow["\cdots"{marking, allow upside down}, draw=none, from=1, to=2]
-	\arrow["\cdots"{marking, allow upside down}, draw=none, from=3, to=2]
-	\arrow["\times"{description, pos=0}, draw=none, from=3-3, to=0]
-	\arrow["\cdots"{marking, allow upside down}, draw=none, from=4, to=5]
-	\arrow["\cdots"{marking, allow upside down}, draw=none, from=5, to=6]
+	\arrow[no head, from=3-3, to=2-2]
+	\arrow[no head, from=4-2, to=3-1]
+	\arrow[no head, from=4-2, to=3-2]
+	\arrow[no head, from=4-2, to=3-3]
+	\arrow[draw=none, from=1, to=2]
+	\arrow["\times"{description, pos=0.4}, draw=none, from=3-3, to=0]
 \end{tikzcd}\]
 
+\(\mathrm{secret}^p\) is the confidentiality label of a secret value created in
+the \(p\)-th plugin; in particular \(p=0\) is used for the main module of the
+program.
+
+We define the big-step operational semantics relation, with signature:
+\[ {\Downarrow} : \mathrm{Env} \times \underbrace{\mathrm{Lbl}}_{pc} \times \mathrm{Exp} \to \mathrm{Val} \cup \underbrace{(\mathrm{Ide} \times \mathrm{Fun} \times \mathrm{Val}^* \times \mathrm{Lbl})}_{\text{for raising operations}} \] %HAND
+where:
 \begin{align*}
   \mathrm{Val} &= \mathrm{BareVal} \times \mathrm{Lbl}
   \\
-  \mathrm{BareVal} &= \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool} \cup \mathrm{Fun} \cup \mathrm{Val}^* \cup \mathrm{Defer} \cup \mathrm{Mod} \cup \mathrm{ValType} % \cup \mathrm{NoSecret}
+  \mathrm{BareVal} &= \mathrm{Int} \cup \mathrm{Str} \cup \mathrm{Bool} \cup \mathrm{Fun} \cup \underbrace{\mathrm{Val}^*}_{\text{tuples}} \cup \mathrm{Defer} \cup \mathrm{Mod} \cup \underbrace{\mathrm{ValType}}_{\mathclap{\text{value with interface}}} % \cup \mathrm{NoSecret}
   % \\
   % \mathrm{NoSecret} &= \left\{ \vnosecret v \mid v \in \mathrm{BareVal} \right\}
   \\
@@ -231,7 +241,7 @@ follows:
   \mathrm{Bool} &= \left\{ \true, \false \right\}
   \\
   \\
-  \mathrm{Env} &= \mathrm{Val}^{\mathrm{Ide} \,\cup\, \left\{ \mathrm{trusted} \right\}}
+  \mathrm{Env} &= \mathrm{Val}^{\mathrm{Ide} \,\cup\, \left\{ \mathrm{@trusted}, \mathrm{@plugin} \right\}}
   \\
   \mathrm{Fun} &= \left\{ \vlam \Delta x e \mid \Delta \in \mathrm{Env}, x \in \mathrm{Ide}, e \in \mathrm{Exp} \right\}
   \\
@@ -246,13 +256,18 @@ follows:
   \\
   \mathrm{ValType} &= \left\{ v : \tau \mid v \in \mathrm{BareVal}, \tau \in \mathrm{Type} \right\}
 \end{align*}
-where Exp is the set of syntactic elements generated by the nonterminal \(e\) in the grammar, and Type by the nonterminal \(\tau\).
+and Exp is the set of syntactic elements generated by the nonterminal \(e\) in the grammar, and Type by the nonterminal \(\tau\).
 
+Defer values are needed to implement the fixpoint operators \texttt{fix} and \texttt{fix*}, they cannot be created by the user. Modules are environment tagged with the module kind: simple module, trusted module or plugin.\footnote{Actually, this distinction is not strictly needed for the semantics of (trusted) modules and plugins, but we keep to be able to print them differently.} @trusted and @plugin are special identifiers used to keep track of the trustedness level and plugin identifier in environments.
 
-\[ {\Downarrow} : \mathrm{Env} \times \mathrm{Lbl} \times \mathrm{Exp} \to \mathrm{Val} \cup (\mathrm{Ide} \times \mathrm{Fun} \times \mathrm{Val}^* \times \mathrm{Lbl}) \]
-
+Here are the inference rules. We begin with simple rules for values, variables and tuple projections:
 \begin{gather*}
-  \prftree[r]{[Val]}{\bstep{\Delta}{pc}{v}{\llbracket v \rrbracket}{pc}} \\[4ex]\displaybreak[1]
+  \prftree[r]{[Val]}{\bstep{\Delta}{pc}{v}{\llbracket v \rrbracket}{pc}} \\[1.5ex]\displaybreak[0]
+  %
+  \prftree[r]{[Lam]}{\bstep{\Delta}{pc}{\slam x e}{\vlam \Delta b e}{pc}} \\[1.5ex]\displaybreak[0]
+  \prftree[r]{[Tuple]}
+  {\forall i \in [1,n].\; \bstep{\Delta}{pc}{e_i}{v_i}{\ell_i} \triangleq \valpair v_{i}}
+  {\bstep{\Delta}{pc}{\stuple{e_1\scomma \dots\scomma e_{n}}}{[\valpair v_1, \dots, \valpair v_{n}]}{pc \sqcup \bigsqcup_{i = 1}^{n} \ell_{i}}} \\[4ex]\displaybreak[1]
   %
   \prftree[r]{[Var]}
   {\Delta(x) = \langle v, \ell \rangle}
@@ -278,13 +293,12 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
     {\bstep{\Delta}{pc}{e_2}{i}{\ell_2} \quad {0 \leq i \leq n-1}}
     {v_{i} = \vdefer {\Delta'} e \quad \bstep{\Delta'}{pc}{e}{v}{\ell_3}}}
   {\bstep{\Delta}{pc}{\sproj {e_1} {e_2}}{v}{pc \sqcup \ell_1 \sqcup \ell_2 \sqcup \ell_{v_i} \sqcup \ell_3}}
-  \\[4ex]\displaybreak[1]
-  %
-  \prftree[r]{[Lam]}{\bstep{\Delta}{pc}{\slam x e}{\vlam \Delta b e}{pc}} \\[1.5ex]\displaybreak[0]
-  \prftree[r]{[Tuple]}
-  {\forall i \in [1,n].\; \bstep{\Delta}{pc}{e_i}{v_i}{\ell_i} \triangleq \valpair v_{i}}
-  {\bstep{\Delta}{pc}{\stuple{e_1\scomma \dots\scomma e_{n}}}{[\valpair v_1, \dots, \valpair v_{n}]}{pc \sqcup \bigsqcup_{i = 1}^{n} \ell_{i}}} \\[4ex]\displaybreak[0]
-  %
+  \\%[1.5ex]\displaybreak[1]
+\end{gather*}
+The idea of deferred expressions is that \(\vdefer {\Delta} e\) automatically evaluates \(e\) in environment \(\Delta\) when the defer is extracted from the environment or a tuple field
+
+Then we have rules for application:
+\end{gather*}
   \prftree[r]{[App]}
   {\bstep{\Delta}{pc}{e_1}{\vlam {\Delta'} x e}{\ell_{f}}}
   {\bste{\Delta}{pc}{e_2}{\valpair v}}
@@ -310,7 +324,7 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
       \quad \valpair v' \triangleq \text{apply-intf}(\valpair v, \tau_1)}
     {\bstep{\ext {\Delta'} x {\valpair v'}}{pc \sqcup \ell_{f}}{e}{u}{\ell_{u}} \triangleq \valpair u
     \quad \langle u', \ell_{u}' \rangle \triangleq \text{apply-intf}(\valpair u, \tau_2)}}
-  {\bstep{\Delta}{pc}{e_1~e_2}{u'}{pc \sqcup \ell_{f} \sqcup \ell_{u}'}} \\[4ex]\displaybreak[1]
+  {\bstep{\Delta}{pc}{e_1~e_2}{u'}{pc \sqcup \ell_{f} \sqcup \ell_{u}'}} % \\[4ex]\displaybreak[1]
   %
   % \prftree[r]{[AppIntfNoSecret]}
   % {\prfStackPremises
@@ -322,6 +336,38 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
   %   \quad \valpair u' \triangleq \langle u', \ell_{u}' \rangle \triangleq \text{apply-intf}(\valpair u, \tau_2)}}
   % {\bstep{\Delta}{pc}{e_1~e_2}{\text{apply-nosecret}(\valpair u')}{pc \sqcup \ell_{f} \sqcup \ell_{u}'}} \\[4ex]\displaybreak[1]
   %
+\end{gather*}
+Application is standard if \(e_1\) evaluates to a closure. If instead it evaluates to a closure tagged with a type \(\tau_1 \to \tau_2\) (its interface), then we need to check that the parameter and the result match \(\tau_1\) and \(\tau_2\). We do so with the help of the following function:
+\begin{align*}
+  &\text{apply-intf}(\langle v, \ell \rangle, \tau) =
+  \begin{dcases}
+    \langle v, \ell'\rangle & \begin{aligned}
+      \tau &= \stany \\
+      {}\vee (\tau &=\stint \wedge v \in \mathrm{Int}) \\
+      {}\vee (\tau &= \ststring \wedge v \in \mathrm{Str}) \\
+      {}\vee (\tau &= \stbool \wedge v \in \mathrm{Bool})
+    \end{aligned} \\[1.5ex]
+    \langle v:\tau, \ell' \rangle & \tau = \tau_1 \to \tau_2 \\[1.5ex]
+    \begin{aligned}
+      \langle [&\text{apply-intf}(\valpair{v}_1,\tau_1),
+      \dots, \\
+      &\text{apply-intf}(\valpair{v}_n,\tau_n)
+      ], \ell' \rangle
+    \end{aligned}
+    & \tau = \stuple{\tau_1\scomma \dots \scomma \tau_n} \wedge v = [\valpair{v}_1, \dots , \valpair{v}_n] \\[1.5ex]
+    % {\vnosecret {\langle v'', \ell' \rangle} } &
+    %                               \begin{aligned}
+    %                                 &v = \vnosecret {v'}\\
+    %                                 &\wedge \langle v'', \ell' \rangle = {\text{apply-intf}(\langle v', \ell \rangle, \tau)}
+    %                               \end{aligned} \\[1.5ex]
+    \text{undefined} & \text{otherwise}
+  \end{dcases} \\
+&\quad\text{where } \ell' \triangleq \ell \sqcup \langle \mathrm{public}, \mathrm{tainted} \rangle
+\end{align*}
+\(\text{apply-intf}(\valpair v, \tau)\) checks that \(\valpair v\) has type \(\tau\) and, if $\valpair v$ is a tuple, propagates the interface to the components of \(\valpair v\).
+
+Going on, we have rules for unary and binary operations (we assume to have a function \(\llbracket \cdot \rrbracket : \mathrm{Bop} \to (\mathrm{Val} \to \mathrm{Val} \to \mathrm{Val})\) that gives the semantic interpretation of each operation) and if expressions:
+\begin{gather*}
   \prftree[r]{[Uop]}
   {\bstep{\Delta}{pc}{e}{v}{\ell}}
   {\bstep{\Delta}{pc}{\mathit{uop}~e}{\llbracket \mathit{uop} \rrbracket(v)}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
@@ -340,7 +386,52 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
   {\bstep{\Delta}{pc}{e_c}{\false}{\ell_{c}}}
   {\bstep{\Delta}{pc \sqcup \ell_{c}}{e_e}{v}{\ell_e}}
   {\bstep{\Delta}{pc}{\sif {e_{c}} {e_{t}} {e_{e}}}{v}{pc \sqcup \ell_c \sqcup \ell_e}} \\[4ex]\displaybreak[1]
-  %
+\end{gather*}
+
+Let bindings also perform attribute checking and casting.
+\(\slet {\textit{attrs}} x {e_1} {e_2}\) evaluates \(e_1\), checks that its
+security label is compatible with attributes \textit{attrs}, then upcasts it to
+\textit{attrs} if it was more permissive, and binds the result to \(x\) in the
+evaluation of \(e_2\):
+\begin{gather*}
+  \prftree[r]{[Let]}
+  {\prfStackPremises
+    {\bstep{\Delta}{pc}{e_1}{v_1}{\ell_{1}}
+      \quad p \triangleq \Delta(\mathrm{plugin}) \quad \ell_1 \sqsubseteq \llbracket 0; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
+    {\bstep{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket p; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{v}{\ell}}}
+  {\bstep{\Delta}{pc}{\slet {a_1~\dots~a_{n}} x {e_1} {e_2}}{v}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
+\end{gather*}
+
+The functions \(\llbracket \cdot \rrbracket^{\top}_{\mathrm{attr}}\) and \(\llbracket \cdot \rrbracket^{\bot}_{\mathrm{attr}}\) are defined as:
+\begin{align*}
+  \llbracket p; a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\top} &= \bigsqcap_{i=1} \llbracket p; a_i \rrbracket_{\mathrm{attr}}^{\top} \qquad n \neq 1 \\
+  \llbracket p; a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\bot} &= \bigsqcup_{i=1} \llbracket p; a_i \rrbracket_{\mathrm{attr}}^{\bot} \qquad n \neq 1 \\
+  \llbracket p; \texttt{secret} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{secret}^{p}, X_{I}) \\
+  \llbracket p; \texttt{public} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{public}, X_{I}) \\
+  \llbracket p; \texttt{tainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{tainted}) \\
+  \llbracket p; \texttt{untainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{untainted})
+\end{align*}
+Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
+
+Essentially, \(\llbracket p; \textit{attrs} \rrbracket^{X}_{\mathrm{attr}}\) turns a list of attributes into an element of Lbl; if \(X=\top\), the result is the smallest element of the lattice compatible with \emph{attrs}, if \(X=\bot\) it is the greatest. We use \(X=\top\) when checking if the assignment is valid so that \(\texttt{let public secret x = <secret value>}\) is rejected, and \(X=\bot\) when casting so that with \(\texttt{let public secret x = <public value>}\), \texttt{x} is secret in the body.
+
+With a slight change of the semantics, i.e. always using \(X=\top\), we could implement a \emph{strict mode} for the language: in that case, all \texttt{let}s with unspecified attributes become equivalent to \texttt{let public } % TODO per alessandro <3
+
+There is also a rule that skips the evaluation of a deferred expression if it is immediatly bound in a \texttt{let}; this is needed to avoid divergence in the implementation of \texttt{let rec}:
+\begin{gather*}
+  \prftree[r]{[LetProj]}
+  {\prfStackPremises
+    {\bstep{\Delta}{pc}{e_t}{[ \langle v_j, \ell_{v_{j}} \rangle]_{j \in [0,\dots,n-1]}}{\ell_t}
+      \quad {\bstep{\Delta}{pc}{e_i}{i}{\ell_i}}}
+    {{0 \leq i \leq n-1}
+      \quad \ell_{i}' \triangleq \ell_{v_{i}} \sqcup \ell_{i}}
+    {p \triangleq \Delta(\mathrm{plugin}) \quad \ell_i' \sqsubseteq \llbracket 0; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
+    {\bstep{\ext \Delta x {\langle v_i, \ell_i' \sqcup  \llbracket p; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{v}{\ell}}}
+  {\bstep{\Delta}{pc}{\slet {a_1~\dots~a_{n}} x {\sproj{e_t}{e_{i}}} {e_2}}{v}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
+\end{gather*}
+
+We also have fixpoint operators \texttt{fix} and \texttt{fix*} (for mutually recursive definitions), which are also used to implement \texttt{let rec} ... \texttt{and} definitions:
+\begin{gather*}
   \prftree[r]{[Fix]}
   {\bstep{\Delta}{pc}{e}{\vlam {\Delta'} x {e'}}{\ell}}
   {\bstep{\ext {\Delta'}{x}{\langle \vdefer {\Delta'} {\sfix {\slam x {e'}}}, \ell \rangle}}{pc \sqcup \ell}{e'}{v}{\ell'}}
@@ -359,31 +450,6 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
           ,\; \ell_{i} \rangle}}{pc \sqcup \ell_{i}}{e_{i}'}{\smash{\overbrace{\langle v_{i},\; \ell_{i}' \rangle}^{\valpair v_{i}}}}}}
   {\bstep{\Delta}{pc}{\sfixs{e}}{[\valpair{v}_1, \dots, \valpair{v}_{n}]}{pc \sqcup \ell \sqcup \bigsqcup_{i=1}^{n} \ell_{i} \sqcup \bigsqcup_{i=1}^{n} \ell_{i}'}}\\[4ex]\displaybreak[1]
   %
-  \prftree[r]{[Let]}
-  {\prfStackPremises
-    {\bstep{\Delta}{pc}{e_1}{v_1}{\ell_{1}}
-    \quad p \triangleq \Delta(\mathrm{plugin}) \quad \ell_1 \sqsubseteq \llbracket 0; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
-    {\bstep{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket p; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{v}{\ell}}}
-  {\bstep{\Delta}{pc}{\slet {a_1~\dots~a_{n}} x {e_1} {e_2}}{v}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[LetProj]}
-  {\prfStackPremises
-    {\bstep{\Delta}{pc}{e_t}{[ \langle v_j, \ell_{v_{j}} \rangle]_{j \in [0,\dots,n-1]}}{\ell_t}
-    \quad {\bstep{\Delta}{pc}{e_i}{i}{\ell_i}}}
-  {{0 \leq i \leq n-1}
-    \quad \ell_{i}' \triangleq \ell_{v_{i}} \sqcup \ell_{i}}
-    {p \triangleq \Delta(\mathrm{plugin}) \quad \ell_i' \sqsubseteq \llbracket 0; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}}
-    {\bstep{\ext \Delta x {\langle v_i, \ell_i' \sqcup  \llbracket p; a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{v}{\ell}}}
-  {\bstep{\Delta}{pc}{\slet {a_1~\dots~a_{n}} x {\sproj{e_t}{e_{i}}} {e_2}}{v}{pc \sqcup \ell}} \\[1.5ex]\displaybreak[0]
-  %
-  % TODO rimettere?
-  % \prftree[r]{[LetRec]}
-  % {\prfStackPremises
-  %   {\bstep{\Delta}{pc}{\sfix{\slam x {e_1}}}{v_1}{\ell_{1}}}
-  %   {{\ell_1 \sqsubseteq \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\top}} \quad
-  %   {\bste{\ext \Delta x {\langle v_1, \ell_1 \sqcup  \llbracket a_1,\dots,a_{n} \rrbracket_{\mathrm{attr}}^{\bot}\rangle}}{pc}{e_2}{\valpair v}}}}
-  % {\bste{\Delta}{pc}{\sletrec {a_1~\dots~a_{n}} x {e_1} {e_2}}{\valpair v}} \\[1.5ex]\displaybreak[0]
-  %
   \prftree[r]{[LetRecAnd]} % TODO scrivere che let rec secret f = ... and g = ... g è per forza secret
                            % e che \ell non serve
   {\prfStackPremises
@@ -396,109 +462,28 @@ where Exp is the set of syntactic elements generated by the nonterminal \(e\) in
     {p \triangleq \Delta(\mathrm{plugin}) \quad {\forall i \in [1,m].\; \ell_i \sqsubseteq \llbracket p; a_1^{i},\dots,a_{n_{i}}^{i} \rrbracket_{\mathrm{attr}}^{\top}}}
     {  {\valpair u_{i} \triangleq \langle v_i, \ell_i \sqcup  \llbracket p; a_1^{i},\dots,a_{n_{i}}^{i} \rrbracket_{\mathrm{attr}}^{\bot}\rangle} \quad
     \bstep{\Delta[x_1 \mapsto \valpair u_{1}, \dots, x_m \mapsto \valpair u_{m}]}{pc}{e}{v}{\ell'}}}
-  {\bstep{\Delta}{pc}{\texttt{let rec}~{a_1^{1}~\dots~a_{n_{1}}^{1}}~x_{1} = {e_1}~(\texttt{and}~{a_1^{i}~\dots~a_{n_{i}}^{i}}~x_{i} = e_i)_{i \in [2,m]}~\texttt{in}~e}{v}{pc \sqcup \ell'}} \\[4ex]\displaybreak[1]
-  %
+  {\bstep{\Delta}{pc}{\texttt{let rec}~{a_1^{1}~\dots~a_{n_{1}}^{1}}~x_{1} = {e_1}~(\texttt{and}~{a_1^{i}~\dots~a_{n_{i}}^{i}}~x_{i} = e_i)_{i \in [2,m]}~\texttt{in}~e}{v}{pc \sqcup \ell'}} %\\[4ex]\displaybreak[1]
+\end{gather*}
+
+Modules are first class values; at runtime they are environments that can be
+passed around and accessed dynamically. To evaluate a module, we translate it to a chain of \texttt{let} expressions. The body of the final \texttt{let} is the expression \(\slam x x\); this is a trick to be able to extract the environment at the end of the evaluation of the module (since the lambda will produce a closure).
+
+Only the identifiers which are explicitly exported are accessible outside the module.
+
+We keep track of whether the module was a simple \texttt{module} or a
+\texttt{trusted module} through a binding of the special identifier @trusted.
+\begin{gather*}
   \prftree[r]{[Module]}
   % {\forall i \in [1, n].\; \bstep {\Delta} {pc} {d_i} {\partial_i} {\ell_i}}
-  {\bstep{\ext \Delta {\mathrm{trusted}} {\false}}{pc}{\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}{\vlam {\Delta'} x x}{\ell}}
+  {\bstep{\ext \Delta {\mathrm{@trusted}} {\false}}{pc}{\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}{\vlam {\Delta'} x x}{\ell}}
   {\bstep{\Delta}{pc}{\smodule {d_1 \dots d_{n}}}{\vmodule{\Delta'_{\mid \left\{ x \;\mid\; \sexport x \,\in\, \left\{ d_1,\dots,d_{n} \right\}\right\}}}}{pc}}\\[1.5ex]\displaybreak[0]
   %
   \prftree[r]{[TrustedModule]}
   % {\forall i \in [1, n].\; \bstep {\Delta} {pc} {d_i} {\partial_i} {\ell_i}}
-  {\bstep{\ext \Delta {\mathrm{trusted}} {\true}}{pc}{\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}{\vlam {\Delta'} x x}{\ell}}
-  {\bstep{\Delta}{pc}{\strusted {d_1 \dots d_{n}}}{\vtrusted{\Delta'_{\mid \left\{ x \;\mid\; \sexport x \,\in\, \left\{ d_1,\dots,d_{n} \right\}\right\}}}}{pc}}\\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[Plugin]}
-  {\prfStackPremises
-    {p~\text{fresh plugin number}}
-    {\bstep{\ext{\varnothing}{\mathrm{plugin}}{p}}{\bot}{\text{read-file}(f)}{\vmodule{\Delta'}}{\ell}}
-    {\Delta''(x) \triangleq
-      \begin{cases}
-        \text{apply-intf}(\Delta'(x),\tau) & (x:\tau) \in \left\{ i_1,\dots,i_{n} \right\} \\
-        \mathrm{undefined} & \text{otherwise}
-      \end{cases}}}
-  {\bstep{\Delta}{pc}{\splugin f {i_1 \dots i_{n}}}{\vplugin{\Delta''}}{pc \sqcup \ell}}\\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[FieldAccess]}
-  {\bstep{\Delta}{pc}{e}{\textit{m}~{\Delta'}}{\ell}}
-  {\Delta'(x) = \langle v, \ell' \rangle}
-  {\textit{m} \in \left\{ \mathrm{mod}, \mathrm{tmod}, \mathrm{plug} \right\}}
-  {\bstep{\Delta}{pc}{e.x}{v}{pc \sqcup \ell \sqcup \ell'}}\\[4ex]\displaybreak[1]
-  %
-  % \prftree[r]{[FieldAccessNoSecret]}
-  % {\bstep{\Delta}{pc}{e}{\textit{m}~{\Delta'}}{\ell}}
-  % {\Delta'(x) = \langle \vnosecret v, \ell' \rangle}
-  % {\textit{m} \in \left\{ \mathrm{mod}, \mathrm{tmod}, \mathrm{plug} \right\}}
-  % {\bstep{\Delta}{pc}{e.x}{\text{apply-nosecret}(v)}{pc \sqcup \ell \sqcup \ell'}}\\[4ex]\displaybreak[1]
-  %
-  \prftree[r]{[HasAttr]}
-  {\prfStackPremises
-  {\bstep{\Delta}{pc}{e}{v}{\langle \ell_{C}, \ell_{I} \rangle}}
-  {b \triangleq
-    \begin{aligned}[t]
-      &(attr = \texttt{public} \wedge \ell_{C} = \mathrm{public}) \vee (attr = \texttt{secret} \wedge \exists p.\;  \ell_{C} = \mathrm{secret}^{p}) \\
-      {}\vee{}&
-      (attr = \texttt{untainted} \wedge \ell_{I} = \mathrm{untainted}) \vee (attr = \texttt{tainted} \wedge \ell_{I} = \mathrm{tainted})
-          \end{aligned}}}
-  {\bstep{\Delta}{pc}{\spredicate {attr} e}{b}{pc \sqcup \langle \ell_{C}, \ell_{I} \rangle}}\\[4ex]\displaybreak[1]
-  %
-  \prftree[r]{[Declassify]}
-  {\prfStackPremises
-    {{\bstep{\Delta}{pc}{e}{v}{\langle \ell_{C}, \ell_{I} \rangle}}
-      \quad {\Delta(\mathrm{trusted}) = \true}}
-    {\ell_{C} = \mathrm{secret}^{p} \Rightarrow \Delta(\mathrm{plugin}) \in \left\{ 0, p \right\}}}
-  {\bstepp{\Delta}{pc}{\sdeclassify e}{v}{\mathrm{public}}{\ell_{I}}}\\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[Endorse]}
-  {\bstep{\Delta}{pc}{e}{v}{\langle \ell_{C}, \ell_{I} \rangle}}
-  {\Delta(\mathrm{trusted}) = \true}
-  {\bstepp{\Delta}{pc}{\sendorse e}{v}{\ell_{C}}{\mathrm{untainted}}}\\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[DeclassifyPC]}
-  {\prfStackPremises
-    {\mathit{pc}_{C} = \mathrm{secret}^{p} \Rightarrow \Delta(\mathrm{plugin}) \in \left\{ 0, p \right\}
-    \quad {\Delta(\mathrm{trusted}) = \true}}
-    {{\bstepp{\Delta}{\langle \mathrm{public}, \mathit{pc}_{I} \rangle}{e}{v}{\ell_{C}}{\ell_{I}}}
-      }}
-  {\bstepp{\Delta}{\langle \mathit{pc}_{C}, \mathit{pc}_{I} \rangle}{\sdeclassifypc e}{v}{\ell_{C}}{\mathit{pc}_{I} \sqcup \ell_{I}}}\\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[EndorsePC]}
-  {\Delta(\mathrm{trusted}) = \true}
-  {\bstepp{\Delta}{\langle \mathit{pc}_{C}, \mathrm{untainted} \rangle}{e}{v}{\ell_{C}}{\ell_{I}}}
-  {\bstepp{\Delta}{\langle \mathit{pc}_{C}, \mathit{pc}_{I} \rangle}{\sendorsepc e}{v}{\mathit{pc}_{C} \sqcup \ell_{C}}{\ell_{I}}}\\[4ex]\displaybreak[1]
-  % TODO scrivere che assert si può implementare come funzione con securityexception quindi non ha senso restringerlo a contesti secret
-  \prftree[r]{[Assert]}
-  {\bstep{\Delta}{pc}{e}{\true}{\ell}}
-  {\bstep{\Delta}{pc}{\sassert e}{\true}{pc \sqcup \ell}}\\[4ex]\displaybreak[1]
-  %
-  \prftree[r]{[Print]}
-  {\bstep{\Delta}{pc}{e}{v}{\ell}}
-  {pc \sqcup \ell = \langle \mathrm{public}, \ell_{I} \rangle}
-  {\bstep{\Delta}{pc}{\sprint e}{v}{pc \sqcup \ell}}\\[1.5ex]\displaybreak[0]
-  %
-  \prftree[r]{[Get]}
-  {v \triangleq \text{user input}}
-  {\bstep{\Delta}{pc}{\sget}{v}{pc \sqcup \langle \mathrm{public},\mathrm{tainted} \rangle}}\\[4ex]\displaybreak[1]
+  {\bstep{\ext \Delta {\mathrm{@trusted}} {\true}}{pc}{\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}{\vlam {\Delta'} x x}{\ell}}
+  {\bstep{\Delta}{pc}{\strusted {d_1 \dots d_{n}}}{\vtrusted{\Delta'_{\mid \left\{ x \;\mid\; \sexport x \,\in\, \left\{ d_1,\dots,d_{n} \right\}\right\}}}}{pc}}%\\[1.5ex]\displaybreak[0]
 \end{gather*}
-
-
-read-file mette module/end
-
-
-TODO: Check Module, Decl, finish Trusted and Plugin
-Strict mode Let e Decl sempre \(\top\).
-
-\begin{align*}
-  \llbracket p; a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\top} &= \bigsqcap_{i=1} \llbracket p; a_i \rrbracket_{\mathrm{attr}}^{\top} \qquad n \neq 1 \\
-  \llbracket p; a_1,\dots,a_n \rrbracket_{\mathrm{attr}}^{\bot} &= \bigsqcup_{i=1} \llbracket p; a_i \rrbracket_{\mathrm{attr}}^{\bot} \qquad n \neq 1 \\
-  \llbracket p; \texttt{secret} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{secret}^{p}, X_{I}) \\
-  \llbracket p; \texttt{public} \rrbracket_{\mathrm{attr}}^{X} &= (\mathrm{public}, X_{I}) \\
-  \llbracket p; \texttt{tainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{tainted}) \\
-  \llbracket p; \texttt{untainted} \rrbracket_{\mathrm{attr}}^{X} &= (X_{C}, \mathrm{untainted})
-\end{align*}
-
-Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
-
+This is the definition of the translation from module syntax to let expressions:
 \begin{align*}
   \llbracket \varepsilon \rrbracket_{\mathrm{mod \to let}} &\triangleq \slam{x}{x} \\
   \llbracket \sdlet {\mathit{attr}{*}} x e, d_1, \dots,d_{n} \rrbracket_{\mathrm{mod \to let}} &\triangleq \slet {\mathit{attr}{*}} x e {\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}} \\
@@ -512,6 +497,113 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
   \end{aligned}
    \right\rrbracket_{{\mathrm{mod \to let}}} &\triangleq l \texttt{ in } {\llbracket d_1,\dots,d_{n} \rrbracket_{\mathrm{mod \to let}}}
 \end{align*}
+
+
+\texttt{plugin} expressions are composed of a file name and a list of interfaces. The file is parsed and evaluated, resulting in a module (its content is implicitly wrapped with \texttt{module} ... \texttt{end}). Then, we apply the specified interfaces to the bindings contained in that module, discarding the bindings that do not have one.
+\begin{gather*}
+  \prftree[r]{[Plugin]}
+  {\prfStackPremises
+    {p~\text{fresh plugin number}}
+    {\bstep{\ext{\varnothing}{\mathrm{@plugin}}{p}}{\bot}{\text{read-file}(f)}{\vmodule{\Delta'}}{\ell}}
+    {\Delta''(x) \triangleq
+      \begin{cases}
+        \text{apply-intf}(\Delta'(x),\tau) & (x:\tau) \in \left\{ i_1,\dots,i_{n} \right\} \\
+        \mathrm{undefined} & \text{otherwise}
+      \end{cases}}}
+  {\bstep{\Delta}{pc}{\splugin f {i_1 \dots i_{n}}}{\vplugin{\Delta''}}{pc \sqcup \ell}}%\\[1.5ex]\displaybreak[0]
+\end{gather*}
+Finally, names defined in modules and plugins can be accessed through their environment:
+\begin{gather*}
+  \prftree[r]{[FieldAccess]}
+  {\bstep{\Delta}{pc}{e}{\textit{m}~{\Delta'}}{\ell}}
+  {\Delta'(x) = \langle v, \ell' \rangle}
+  {\textit{m} \in \left\{ \mathrm{mod}, \mathrm{tmod}, \mathrm{plug} \right\}}
+  {\bstep{\Delta}{pc}{e.x}{v}{pc \sqcup \ell \sqcup \ell'}}\\[4ex]\displaybreak[1]
+  %
+  % \prftree[r]{[FieldAccessNoSecret]}
+  % {\bstep{\Delta}{pc}{e}{\textit{m}~{\Delta'}}{\ell}}
+  % {\Delta'(x) = \langle \vnosecret v, \ell' \rangle}
+  % {\textit{m} \in \left\{ \mathrm{mod}, \mathrm{tmod}, \mathrm{plug} \right\}}
+  % {\bstep{\Delta}{pc}{e.x}{\text{apply-nosecret}(v)}{pc \sqcup \ell \sqcup \ell'}}\\[4ex]\displaybreak[1]
+  %
+\end{gather*}
+
+We provide operators for declassifying and endorsing values as well as the control flow label (\(pc\)). Those operators can only be used inside trusted modules. Furthermore declassification of a \(\mathrm{secret}^{p}\) value can only be performed inside the plugin \(p\) or the main module \(0\).
+\begin{gather*}
+    \prftree[r]{[Declassify]}
+    {\prfStackPremises
+      {{\bstep{\Delta}{pc}{e}{v}{\langle \ell_{C}, \ell_{I} \rangle}}
+        \quad {\Delta(\mathrm{@trusted}) = \true}}
+      {\ell_{C} = \mathrm{secret}^{p} \Rightarrow \Delta(\mathrm{@plugin}) \in \left\{ 0, p \right\}}}
+    {\bstepp{\Delta}{pc}{\sdeclassify e}{v}{\mathrm{public}}{\ell_{I}}}\\[1.5ex]\displaybreak[0]
+    % 
+    \prftree[r]{[Endorse]}
+    {\bstep{\Delta}{pc}{e}{v}{\langle \ell_{C}, \ell_{I} \rangle}}
+    {\Delta(\mathrm{@trusted}) = \true}
+    {\bstepp{\Delta}{pc}{\sendorse e}{v}{\ell_{C}}{\mathrm{untainted}}}\\[1.5ex]\displaybreak[0]
+    % 
+    \prftree[r]{[DeclassifyPC]}
+    {\prfStackPremises
+      {\mathit{pc}_{C} = \mathrm{secret}^{p} \Rightarrow \Delta(\mathrm{@plugin}) \in \left\{ 0, p \right\}
+        \quad {\Delta(\mathrm{@trusted}) = \true}}
+      {{\bstepp{\Delta}{\langle \mathrm{public}, \mathit{pc}_{I} \rangle}{e}{v}{\ell_{C}}{\ell_{I}}}
+      }}
+    {\bstepp{\Delta}{\langle \mathit{pc}_{C}, \mathit{pc}_{I} \rangle}{\sdeclassifypc e}{v}{\ell_{C}}{\mathit{pc}_{I} \sqcup \ell_{I}}}\\[1.5ex]\displaybreak[0]
+    % 
+    \prftree[r]{[EndorsePC]}
+    {\Delta(\mathrm{@trusted}) = \true}
+    {\bstepp{\Delta}{\langle \mathit{pc}_{C}, \mathrm{untainted} \rangle}{e}{v}{\ell_{C}}{\ell_{I}}}
+    {\bstepp{\Delta}{\langle \mathit{pc}_{C}, \mathit{pc}_{I} \rangle}{\sendorsepc e}{v}{\mathit{pc}_{C} \sqcup \ell_{C}}{\ell_{I}}}\\[4ex]\displaybreak[1]
+\end{gather*}
+
+\texttt{has\_attr} can be used to check whether a value has a certain attribute. \(\sassert e\) halts the program if \(e\) evaluates to false. \texttt{die} has no rules, thus it always halts the program.
+\begin{gather*}
+  \prftree[r]{[HasAttr]}
+  {\prfStackPremises
+  {\bstep{\Delta}{pc}{e}{v}{\langle \ell_{C}, \ell_{I} \rangle}}
+  {b \triangleq
+    \begin{aligned}[t]
+      &(attr = \texttt{public} \wedge \ell_{C} = \mathrm{public}) \vee (attr = \texttt{secret} \wedge \exists p.\;  \ell_{C} = \mathrm{secret}^{p}) \\
+      {}\vee{}&
+      (attr = \texttt{untainted} \wedge \ell_{I} = \mathrm{untainted}) \vee (attr = \texttt{tainted} \wedge \ell_{I} = \mathrm{tainted})
+          \end{aligned}}}
+  {\bstep{\Delta}{pc}{\spredicate {attr} e}{b}{pc \sqcup \langle \ell_{C}, \ell_{I} \rangle}}\\[4ex]\displaybreak[1]
+  %
+  \prftree[r]{[Assert]}
+  {\bstep{\Delta}{pc}{e}{\true}{\ell}}
+  {\bstep{\Delta}{pc}{\sassert e}{\true}{pc \sqcup \ell}}\\[4ex]\displaybreak[1]
+\end{gather*}
+To avoid information leak, it would be ideal to prevent usage of \texttt{assert} and \texttt{die} in secret contexts, since program termination is an information channel. However, we chose not to since they can always be implemented as functions:
+\begin{verbatim}
+    let my_assert guard =
+        if guard then
+            true
+        else
+            # crash exploiting a security violation
+            let public x =
+                (let secret x = 1 in x)
+            in []
+\end{verbatim}
+and we have no way to prevent program termination in secret contexts in all cases.
+
+Finally, we have operators for simple input and output:
+\begin{gather*}
+  \prftree[r]{[Print]}
+  {\bstep{\Delta}{pc}{e}{v}{\ell}}
+  {pc \sqcup \ell = \langle \mathrm{public}, \ell_{I} \rangle}
+  {\bstep{\Delta}{pc}{\sprint e}{v}{pc \sqcup \ell}}\\[1.5ex]\displaybreak[0]
+  %
+  \prftree[r]{[Get]}
+  {v \triangleq \text{user input}}
+  {\bstep{\Delta}{pc}{\sget}{v}{pc \sqcup \langle \mathrm{public},\mathrm{tainted} \rangle}}\\[4ex]\displaybreak[1]
+\end{gather*}
+
+The initial environment contains the bindings \(\mathrm{plugin} \mapsto 0, \mathrm{trusted} \mapsto \false\).
+
+
+
+
+\section{Effect handlers}
 
 \begin{gather*}
   \prftree[r]{[Do]}
@@ -580,32 +672,6 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
 %   \end{cases}
 % \end{align*}
 
-\begin{align*}
-  &\text{apply-intf}(\langle v, \ell \rangle, \tau) =
-  \begin{dcases}
-    \langle v, \ell'\rangle & \begin{aligned}
-      \tau &= \stany \\
-      {}\vee (\tau &=\stint \wedge v \in \mathrm{Int}) \\
-      {}\vee (\tau &= \ststring \wedge v \in \mathrm{Str}) \\
-      {}\vee (\tau &= \stbool \wedge v \in \mathrm{Bool})
-    \end{aligned} \\[1.5ex]
-    \langle v:\tau, \ell' \rangle & \tau = \tau_1 \to \tau_2 \\[1.5ex]
-    \begin{aligned}
-      \langle [&\text{apply-intf}(\valpair{v}_1,\tau_1),
-      \dots, \\
-      &\text{apply-intf}(\valpair{v}_n,\tau_n)
-      ], \ell' \rangle
-    \end{aligned}
-    & \tau = \stuple{\tau_1\scomma \dots \scomma \tau_n} \wedge v = [\valpair{v}_1, \dots , \valpair{v}_n] \\[1.5ex]
-    % {\vnosecret {\langle v'', \ell' \rangle} } &
-    %                               \begin{aligned}
-    %                                 &v = \vnosecret {v'}\\
-    %                                 &\wedge \langle v'', \ell' \rangle = {\text{apply-intf}(\langle v', \ell \rangle, \tau)}
-    %                               \end{aligned} \\[1.5ex]
-    \text{undefined} & \text{otherwise}
-  \end{dcases} \\
-&\quad\text{where } \ell' \triangleq \ell \sqcup \langle \mathrm{public}, \mathrm{tainted} \rangle
-\end{align*}
 
 % \begin{align*}
 %   &\text{apply-nosecret}(\langle v, \overbrace{\langle \mathrm{public}, \ell_{I} \rangle}^{\ell}\rangle) =
@@ -646,49 +712,20 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
 
 
 
-Initial environment \(\mathrm{plugin} \mapsto 0\)
 
 
-TODO pc in e2 BopRaiseL
-TODO join pc pc' in HandleOp?
-
-TODO label App e Fix
-
-TODO fix* lambda più parametri c'è un solo ambiente cosa vuol dire; si può togliere join?
-
-dire cosa sono c, k, valpair, \(\nu\), \(a\) (attributi)
+% TODO per handler:
+% pc in e2 BopRaiseL
+% join pc pc' in HandleOp?
 
 
-let x = declassify asd in x
-non fa niente se pc è secret, mettere operatore che fa declassify di pc
+% TODO scartati che forse non dovevano essere scartati
+% fix* si può togliere join?
+% dire cosa sono c, k, valpair, \(\nu\), \(a\) (attributi)
 
 
-TODO \(\ell\) in LetRecAnd non usato
+
+
 
 
 \end{document}
-
-
-
-do print
-do print
-
-
-
-
-
-
-
-
-trusted fn pippo x = controlla x; endorse x
-
-
-
-let y =
-  if <condizione tainted>
-    4
-  else
-    3
-
-pippo y
-
