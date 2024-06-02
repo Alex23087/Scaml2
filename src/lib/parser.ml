@@ -169,7 +169,6 @@ and parse_apps toks =
     with ParseError _ -> (e1, toks)
   in
   let e1, toks = parse_field_access toks in
-  Stdio.Out_channel.print_endline (Sexp.to_string_hum (Exp.sexp_of_t e1));
   aux e1 toks
 
 and parse_do toks =
