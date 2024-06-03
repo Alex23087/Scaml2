@@ -98,6 +98,12 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
           in
           (Val.Bool (bbop b1 b2), final_label)
       | Addition, String s1, String s2 -> (Val.String (s1 ^ s2), final_label)
+      | Equals, Tuple t1, Tuple t2 -> (Val.Bool
+        (match t1, t2 with
+          | [], [] -> true
+          | _ -> false),
+        final_label)
+      | Equals, String s1, String s2 -> (Val.Bool (String.(=) s1 s2), final_label)
       | _ -> raise_invalid_bop bop v1 v2)
 
   | Uop (uop, e) -> (
