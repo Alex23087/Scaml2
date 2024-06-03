@@ -27,7 +27,8 @@ let init_env path =
   Env.bind_all env
     [(Ide.of_string "get_string", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetString), Lbl.bot));
      (Ide.of_string "get_int", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetInt), Lbl.bot));
-     (Ide.of_string "get_bool", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetBool), Lbl.bot))]
+     (Ide.of_string "get_bool", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetBool), Lbl.bot));
+     (Ide.of_string "print", (Val.Fun (Env.empty, Ide.of_string "x", Exp.Print (Exp.Var (Ide.of_string "x"))), Lbl.bot))]
 
 let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
     Exp.t Val.t =
