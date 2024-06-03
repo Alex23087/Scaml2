@@ -1,0 +1,15 @@
+let _ = trusted module
+  let secret tainted x = 10
+  let public untainted y = 10
+  let z = 10
+
+  let _ =
+    print (declassify (has_attr secret x));
+    print (declassify (has_attr tainted x))
+  let _ =
+    print (has_attr public y);
+    print (has_attr untainted y)
+  let _ =
+    print (has_attr public z);
+    print (has_attr untainted z)
+end

@@ -48,4 +48,4 @@ let rec apply_intf (v, ell: 'a t) (tau: Typ.t): 'a t =
        let vs' = List.map2_exn vs ts ~f:apply_intf in
        (Tuple vs', ell')
 
-    | _ -> raise (Invalid_argument "Cannot apply interface to value")
+    | _ -> raise (Invalid_argument ("Cannot apply interface to value " ^ (to_string v)))

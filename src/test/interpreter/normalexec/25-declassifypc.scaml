@@ -1,0 +1,11 @@
+let _ = trusted module
+  let x = 10
+  let _ = print (has_attr secret x)
+  let _ = print (has_attr untainted x)
+  let secret x = 10
+  let _ =
+    if x = 10
+      then declassify_pc (print true)
+      else print 10
+    end
+end

@@ -1,0 +1,12 @@
+let _ = trusted module
+  let tainted x = 10
+  let _ =
+    if x = 10
+      then 
+        endorse_pc(
+          let untainted y = 10 in
+          print "ok"
+        )
+      else die
+    end
+end
