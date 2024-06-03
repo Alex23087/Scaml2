@@ -4,6 +4,7 @@
 \usepackage{mlmodern}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
+\usepackage{hyperref}
 
 \usepackage{mathtools,stmaryrd,galois,amsmath,amssymb,amsthm,prftree}
 \usepackage{graphicx,tikz,quiver}
@@ -415,7 +416,7 @@ Note the meet and join of 0 elements are \(\top\) and \(\bot\), respectively.
 
 Essentially, \(\llbracket p; \textit{attrs} \rrbracket^{X}_{\mathrm{attr}}\) turns a list of attributes into an element of Lbl; if \(X=\top\), the result is the smallest element of the lattice compatible with \emph{attrs}, if \(X=\bot\) it is the greatest. We use \(X=\top\) when checking if the assignment is valid so that \(\texttt{let public secret x = <secret value>}\) is rejected, and \(X=\bot\) when casting so that with \(\texttt{let public secret x = <public value>}\), \texttt{x} is secret in the body.
 
-With a slight change of the semantics, i.e. always using \(X=\top\), we could implement a \emph{strict mode} for the language: in that case, all \texttt{let}s with unspecified attributes become equivalent to \texttt{let public } % TODO per alessandro <3
+With a slight change of the semantics, i.e. always using \(X=\top\), we could implement a \emph{strict mode} for the language: in that case, all \texttt{let}s with unspecified attributes become equivalent to \texttt{let secret tainted}. This is a sort of \emph{secure-by-default} stance and forces the programmer to explicitly state when a variable needs to be public or when it is untainted. This choice is similar to that of having immutable values by default and having to explicitly mark mutable ones, and the argument against it is that it makes variable definition more verbose.
 
 There is also a rule that skips the evaluation of a deferred expression if it is immediatly bound in a \texttt{let}; this is needed to avoid divergence in the implementation of \texttt{let rec}:
 \begin{gather*}
@@ -605,6 +606,10 @@ The initial environment contains the bindings \(\mathrm{plugin} \mapsto 0, \math
 
 \section{Effect handlers}
 
+We initially decided to implement effect handlers for the language and redefine security exceptions as operations. This would make for a more flexible language, where the program does not necessarily crash when a security violation happens. For example, one could implement a password manager that returns the password in secret contexts, but when an exception is raised on accessing the password from a public context, the manager would return an obfuscated version of the password. An effect system would also make for some interesting considerations regarding control and information flow, for example on whether we need to consider the invocation of operations a covert channel, as it might be dependent on some data inputted by an attacker.
+
+Unfortunately, it was not possible to implement handlers during this timeframe. Nevertheless, here are some prototype rules for basic handler definition, operation raising and handling, and to build continuations for simple constructs such as binary operations.
+
 \begin{gather*}
   \prftree[r]{[Do]}
   {\forall i \in [1,n].\; \bste{\Delta}{pc}{e_{i}}{\valpair v_{i}}}
@@ -723,8 +728,15 @@ The initial environment contains the bindings \(\mathrm{plugin} \mapsto 0, \math
 % fix* si può togliere join?
 % dire cosa sono c, k, valpair, \(\nu\), \(a\) (attributi)
 
-
-
+\section{Executing the interpreter}
+These instructions assume that \texttt{opam} is installed and that \texttt{make} is available on the machine.
+\begin{enumerate}
+  \item Clone the git repository at \url{git@github.com:Alex23087/Scaml2.git}
+  \item Go into the \texttt{src} folder, and run \texttt{make setup} to install the required Ocaml packages
+  \item Run \texttt{make test-interpreter} to run tests
+  \item Run \texttt{make exec file=\emph{filename}} to execute a Scaml$^2$ program saved in \emph{filename}.
+  \item In the \texttt{example} folder, run the script \texttt{run.sh} to run an example program.
+\end{enumerate}
 
 
 
