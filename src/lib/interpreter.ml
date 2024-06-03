@@ -28,7 +28,8 @@ let init_env path =
     [(Ide.of_string "get_string", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetString), Lbl.bot));
      (Ide.of_string "get_int", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetInt), Lbl.bot));
      (Ide.of_string "get_bool", (Val.Fun (Env.empty, Ide.of_string "_", Exp.GetBool), Lbl.bot));
-     (Ide.of_string "print", (Val.Fun (Env.empty, Ide.of_string "x", Exp.Print (Exp.Var (Ide.of_string "x"))), Lbl.bot))]
+     (Ide.of_string "print", (Val.Fun (Env.empty, Ide.of_string "x", Exp.Print (Exp.Var (Ide.of_string "x"))), Lbl.bot));
+     (Ide.of_string "length", (Val.Fun (Env.empty, Ide.of_string "x", Exp.TupleLength (Exp.Var (Ide.of_string "x"))), Lbl.bot))]
 
 let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
     Exp.t Val.t =
@@ -282,6 +283,12 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
            let v, l' = eval_exp env' pc e in
            (v, Lbl.joins [pc; l; l'])
        | vl -> vl)
+
+  | TupleLength e ->
+      let (v, ell) = eval_exp env pc e in
+      (match v with
+       | Val.Tuple t -> (Val.Int (List.length t), Lbl.join pc ell)
+       | _ -> failwith ("Trying to get length of non-tuple value " ^ (Val.to_string v)))
 
   | HasAttr (attr, e) ->
       let _, l = eval_exp env pc e in

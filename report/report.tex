@@ -92,6 +92,7 @@
 \newcommand*{\scomma}{\texttt{,}}
 \newcommand*{\sproj}[2]{#1\texttt{[} #2 \texttt{]}}
 \newcommand*{\sassert}[1]{\texttt{assert}~#1}
+\newcommand*{\slength}[1]{\texttt{length}~#1}
 
 \newcommand*{\vmodule}[1]{\text{mod}~#1}
 \newcommand*{\vtrusted}[1]{\text{tmod}~#1}
@@ -147,7 +148,7 @@ is inspired by OCaml. Some notable differences include:
 \begin{grammar}
   e \is x \alt v \alt e.x \alt \texttt{(} e \texttt{)}
   \altnl e~\mathit{bop}~e \alt \mathit{uop}~e
-  \alt \stuple{e \scomma \dots \scomma e} \alt \sproj e e
+  \alt \stuple{e \scomma \dots \scomma e} \alt \sproj e e \alt \slength{e}
   \altnl e~e \alt \slam x e \alt \sfix e \alt \sfixs e\alt \mathit{let}
   \altnl \sif e e e
   \altnl \shandle h e \alt \sdo {\mathit{op}} {e*} %HAND
@@ -294,7 +295,11 @@ Here are the inference rules. We begin with simple rules for values, variables a
     {\bstep{\Delta}{pc}{e_2}{i}{\ell_2} \quad {0 \leq i \leq n-1}}
     {v_{i} = \vdefer {\Delta'} e \quad \bstep{\Delta'}{pc}{e}{v}{\ell_3}}}
   {\bstep{\Delta}{pc}{\sproj {e_1} {e_2}}{v}{pc \sqcup \ell_1 \sqcup \ell_2 \sqcup \ell_{v_i} \sqcup \ell_3}}
-  \\%[1.5ex]\displaybreak[1]
+  \\[1.5ex]\displaybreak[0]
+  \prftree[r]{[Length]}
+  {\bstep{\Delta}{pc}{e}{[ \valpair v_j ]_{j \in [0,\dots,n-1]}}{\ell}}
+  {\bstep{\Delta}{pc}{\slength{e}}{n}{pc \sqcup \ell}}
+  \\%[1.5ex]\displaybreak[0]
 \end{gather*}
 The idea of deferred expressions is that \(\vdefer {\Delta} e\) automatically evaluates \(e\) in environment \(\Delta\) when the defer is extracted from the environment or a tuple field
 

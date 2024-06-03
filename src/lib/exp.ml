@@ -9,6 +9,7 @@ type t = Var of Ide.t
 
        | Tuple of t list
        | TupleField of t * t
+       | TupleLength of t
 
        | App of t * t
        | Lam of Ide.t * t
