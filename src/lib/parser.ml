@@ -310,14 +310,12 @@ and parse_plugin toks =
   | _ -> raise_expected_str_eof "file name after 'plugin'"
 
 and parse_type toks =
-  let rec aux t1 = function
-    | TArrow :: toks ->
-       let t2, toks = parse_type_atom toks in
-       aux (Typ.Fun (t1, t2)) toks
-    | toks -> (t1, toks)
-  in
   let t1, toks = parse_type_atom toks in
-  aux t1 toks
+  match toks with
+  | TArrow :: toks ->
+     let t2, toks = parse_type toks in
+     (Typ.Fun (t1, t2), toks)
+  | _ -> t1, toks
 
 and parse_type_atom = function
   | TAny :: toks -> (Typ.Any, toks)
