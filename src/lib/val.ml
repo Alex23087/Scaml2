@@ -32,7 +32,7 @@ let rec to_string = function
   | TMod _ -> "<trusted module>"
   | Plugin _ -> "<plugin>"
   | Defer _ -> "<deferred expression>"
-  | _ -> failwith "to_string not implemented"
+  | ValType (v, _) -> to_string v
 
 let rec apply_intf (v, ell: 'a t) (tau: Typ.t): 'a t =
   let ell' = Lbl.join ell (Lbl.Public, Lbl.Tainted) in
@@ -48,4 +48,4 @@ let rec apply_intf (v, ell: 'a t) (tau: Typ.t): 'a t =
        let vs' = List.map2_exn vs ts ~f:apply_intf in
        (Tuple vs', ell')
 
-    | _ -> raise (Invalid_argument ("Cannot apply interface to value " ^ (to_string v)))
+    | _ -> raise (Invalid_argument ("Cannot type value " ^ (to_string v) ^ " as a " ^ (Typ.to_string tau)))

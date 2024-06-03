@@ -1,0 +1,7 @@
+let p = plugin "aux/declassifier.scaml"
+  perform_action : any -> any
+end
+
+let secret x = 10
+
+let _ = p.perform_action x

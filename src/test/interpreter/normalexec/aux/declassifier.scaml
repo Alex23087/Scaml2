@@ -1,0 +1,7 @@
+let secret x = 10
+let m = trusted module
+  let get_x _ = declassify x
+  export get_x
+end
+let get_x = m.get_x
+export get_x

@@ -1,6 +1,7 @@
 let _ =
+  let get_int x = let tainted _ = 10 in _ in
   let _ = print "Enter a number: " in
-  let untainted i = get_int ([]) in
+  let untainted i = _; get_int ([]) in
   print "The number is: ";
   print i;
   print "\n"

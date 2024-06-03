@@ -12,10 +12,13 @@ test-rerun:
 test-parser: build
 	_build/default/bin/main.exe test/syntax.scaml
 
-exec_program:
+exec: build
+	_build/default/bin/main_interpreter.exe $(file)
+
+exec_test:
 	_build/default/bin/main_interpreter.exe test/interpreter/normalexec/$(file).scaml
 
-exec_except_program:
+exec_except_test:
 	_build/default/bin/main_interpreter.exe test/interpreter/except/$(file).scaml
 
 test-interpreter-normal: build

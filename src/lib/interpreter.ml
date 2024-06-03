@@ -373,7 +373,7 @@ and eval_tuple_field env pc et ei =
 
    | Val.Tuple _, v -> failwith ("Tried using non-integer "
                                  ^ Val.to_string v
-                                 ^ "as tuple index")
+                                 ^ " as tuple index")
    | v, _ -> failwith ("Tried indexing non-tuple "
                        ^ Val.to_string v))
 

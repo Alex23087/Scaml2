@@ -1,0 +1,7 @@
+let p = plugin "aux/plugin.scaml"
+  sum : int -> int -> string
+end
+
+let _ =
+  let res = p.sum 10 20 in
+  print res
