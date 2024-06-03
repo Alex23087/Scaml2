@@ -1,0 +1,25 @@
+export filter
+
+let rec length lst =
+  if lst = []
+    then 0
+    else 1 + length (lst[1])
+  end
+
+let rec filter list pred =
+  if list = []
+    then []
+    else 
+      if pred (list[0])
+        then 
+          if length list = 1
+            then list
+            else[list[0], filter (list[1]) pred]
+          end
+        else
+          if length list = 1
+            then []
+            else filter (list[1]) pred
+          end
+      end
+    end

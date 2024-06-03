@@ -1,0 +1,21 @@
+let pass = 
+  print "Type a password: ";
+  get_string ([])
+
+let password_manager = trusted module
+  let secret untainted password = endorse(pass)
+  let check_password guess = password = guess
+
+  export check_password
+end
+
+let myfilter = plugin "filter.scaml"
+  filter : any -> (any -> bool) -> any
+end
+
+let rec even = \x. if x = 0 then true else odd (x - 1) end
+and odd = \x. if x = 0 then false else even (x - 1) end
+
+let _ = print (myfilter.filter ["pass1", ["pass2", []]] password_manager.check_password)
+
+let _ = print (myfilter.filter [1,[2,[3,[4,[5, []]]]]] odd); print "\n"
