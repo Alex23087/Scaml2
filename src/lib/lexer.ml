@@ -29,7 +29,7 @@ type token = TIde of Ide.t
            | TWith | THandle | TDo
            | TModule | TTrusted | TPlugin | TExport
            | THasAttr | TDeclassify | TEndorse | TDeclassifyPC | TEndorsePC
-           | TPrint | TDie | TAssert
+           | TDie | TAssert
 
            (* types *)
            | TTint | TTstring | TTbool | TArrow | TAny
@@ -47,14 +47,7 @@ let unescape = String.Escaping.unescape_gen_exn
                |> Staged.unstage
 
 let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
-                [("true", Tok (TBool true));
-                 ("false", Tok (TBool false));
-
-                 ("int", Tok TTint);
-                 ("string", Tok TTstring);
-                 ("bool", Tok TTbool);
-                 ("->", Tok TArrow);
-                 ("any", Tok TAny);
+                [("->", Tok TArrow);
 
                  ("(", Tok TParOpen  );  (")", Tok TParClosed);
                  ("[", Tok TSquareOpen); ("]", Tok TSquareClosed);
@@ -78,42 +71,7 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                  ("&&", Tok TLogAnd);
                  ("||", Tok TOr);
                  ("!", Tok TNot);
-                 ("fix*", Tok TFixs);
-                 ("fix", Tok TFix);
-
-                 ("let", Tok TLet);
-                 ("rec", Tok TRec);
-                 ("and", Tok TAnd);
-                 ("in", Tok TIn);
-
-                 ("if", Tok TIf);
-                 ("then", Tok TThen);
-                 ("else", Tok TElse);
-                 ("end", Tok TEnd );
-
-                 ("with", Tok TWith);
-                 ("handle", Tok THandle);
-                 ("do", Tok TDo);
-
-                 ("module", Tok TModule);
-                 ("trusted", Tok TTrusted);
-                 ("plugin", Tok TPlugin);
-                 ("export", Tok TExport);
-
-                 ("has_attr", Tok THasAttr);
-                 ("declassify_pc", Tok TDeclassifyPC);
-                 ("endorse_pc", Tok TEndorsePC);
-                 ("declassify", Tok TDeclassify);
-                 ("endorse", Tok TEndorse);
-
-                 ("print", Tok TPrint);
-                 ("die", Tok TDie);
-                 ("assert", Tok TAssert);
-
-                 ("public", Tok (TLetAttr Public));
-                 ("secret", Tok (TLetAttr Secret));
-                 ("tainted", Tok (TLetAttr Tainted));
-                 ("untainted", Tok (TLetAttr Untainted))])
+                 ("fix*", Tok TFixs)])
              @ (List.map ~f:(fun (s, a) -> (Str.regexp s, a))
                   [(" +", Ignore);
 
@@ -129,7 +87,51 @@ let tok_re = (List.map ~f:(fun (s, a) -> (Str.regexp_string s, a))
                         in TString s));
 
                    ("[a-zA-Z_][a-zA-Z0-9_]*'*",
-                    Fun (fun s -> TIde (Ide.of_string s)))])
+                    Fun (function
+                        | "true" -> TBool true
+                        | "false" -> TBool false
+
+                        | "int" -> TTint
+                        | "string" -> TTstring
+                        | "bool" -> TTbool
+                        | "any" -> TAny
+
+                        | "fix" -> TFix
+
+                        | "let" -> TLet
+                        | "rec" -> TRec
+                        | "and" -> TAnd
+                        | "in" -> TIn
+
+                        | "if" -> TIf
+                        | "then" -> TThen
+                        | "else" -> TElse
+                        | "end" -> TEnd
+
+                        | "with" -> TWith
+                        | "handle" -> THandle
+                        | "do" -> TDo
+
+                        | "module" -> TModule
+                        | "trusted" -> TTrusted
+                        | "plugin" -> TPlugin
+                        | "export" -> TExport
+
+                        | "has_attr" -> THasAttr
+                        | "declassify_pc" -> TDeclassifyPC
+                        | "endorse_pc" -> TEndorsePC
+                        | "declassify" -> TDeclassify
+                        | "endorse" -> TEndorse
+
+                        | "die" -> TDie
+                        | "assert" -> TAssert
+
+                        | "public" -> TLetAttr Public
+                        | "secret" -> TLetAttr Secret
+                        | "tainted" -> TLetAttr Tainted
+                        | "untainted" -> TLetAttr Untainted
+
+                        | s -> TIde (Ide.of_string s)))])
 
 let rec tokenize_line l lnum i toks =
   let try_re (re, act) =

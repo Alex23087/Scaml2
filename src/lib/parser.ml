@@ -7,7 +7,7 @@ open Lexer
    - parse
    - parse_expr (let, with-handle, lambda, ...)
    - parse_ops (various precedence levels)
-   - parse_app_like (application, fix, print, ...)
+   - parse_app_like (application, fix, declassify, ...)
    - parse_field_access (m.x, t[i])
    - parse_atom (actual atoms and delimited terms: parentheses, modules, plugins)
 
@@ -144,8 +144,6 @@ let rec parse_ops toks =
   in aux ops toks
 
 and parse_app_like = function
-  | TPrint :: toks ->
-     let e, toks = parse_field_access toks in (Exp.Print e, toks)
   | TFix :: toks ->
      let e, toks = parse_field_access toks in (Exp.Fix e, toks)
   | TFixs :: toks ->
