@@ -64,7 +64,7 @@ let rec eval_exp (env : Exp.t Val.t Env.t) (pc : Lbl.t) (exp : Exp.t) :
       let v2, l2 = eval_exp env pc e2 in
       let final_label = Lbl.joins [ pc; l1; l2 ] in
       match (bop, v1, v2) with
-      | Seq, _, v2 -> (v2, final_label) (* Maybe this should be (v2,l2)?*)
+      | Seq, _, v2 -> (v2, l2)
       | _, Int i1, Int i2 -> (
           let ibop =
             match bop with
