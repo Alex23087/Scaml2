@@ -9,9 +9,9 @@ let rec length lst =
 let rec filter list pred =
   if list = []
     then []
-    else 
+    else
       if pred (list[0])
-        then 
+        then
           if length list = 1
             then list
             else[list[0], filter (list[1]) pred]
